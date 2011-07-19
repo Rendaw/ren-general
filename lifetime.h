@@ -17,11 +17,14 @@ template <class Type> class Anchor
 	private:
 		Type *Data;
 	public:
+		Anchor(Anchor<Type> const &Other) { assert(false); }
 		Anchor(Type *Data) : Data(Data) {}
 		~Anchor(void) { delete Data; }
 		operator Type*(void) { return Data; }
 		Type *operator *(void) { return Data; }
 		Type *operator ->(void) { assert(Data != NULL); return Data; }
+		Anchor<Type> &operator =(Anchor<Type> const &Other) { assert(false); }
+		Type *operator = (Type *NewData) { Data = NewData; return Data; }
 		bool operator ==(void *Other) { return Data == Other; }
 		bool operator !=(void *Other) { return Data != Other; }
 };
