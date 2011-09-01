@@ -1,5 +1,5 @@
 NAME = general
-OBJECTS = objects/annals.o objects/time.o objects/statemachine.o \
+OBJECTS = objects/annals.o objects/time.o objects/statemachine.o objects/exception.o \
 	objects/range.o objects/region.o objects/color.o objects/rotation.o objects/vector.o
 COMPILE_EXTRA = 
 LINK_EXTRA = 
@@ -21,6 +21,9 @@ objects/range.o objects/range.debug.o: range.cxx range.h
 
 objects/region.o objects/region.debug.o: region.cxx region.h
 	$(COMPILE) $@ region.cxx
+
+objects/exception.o objects/exception.debug.o: exception.cxx exception.h
+	$(COMPILE) $@ exception.cxx
 
 objects/annals.o objects/annals.debug.o: annals.cxx annals.h
 	$(COMPILE) $@ annals.cxx
