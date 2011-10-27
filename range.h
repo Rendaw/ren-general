@@ -19,8 +19,8 @@ template <typename Type> class Range
 {
 	public:
 		Range(const Type &NewMin, const Type &NewMax) :
-			Min(std::min(NewMin, NewMax)),
-			Max(std::max(NewMin, NewMax))
+			Min((std::min)(NewMin, NewMax)),
+			Max((std::max)(NewMin, NewMax))
 			{}
 
 		Range(const Range<Type> &Coperand) : Min(Coperand.Min), Max(Coperand.Max)
@@ -33,18 +33,18 @@ template <typename Type> class Range
 			{ Min = Start; Max = Start + fabs(Width); return *this; }
 
 		Range<Type> &Include(const Type &Value)
-			{ Min = std::min(Min, Value); Max = std::max(Max, Value); return *this; }
+			{ Min = (std::min)(Min, Value); Max = (std::max)(Max, Value); return *this; }
 
 		Range<Type> Including(const Type &Value) const
-			{ return Range<Type>(std::min(Min, Value), std::max(Max, Value)); }
+			{ return Range<Type>((std::min)(Min, Value), (std::max)(Max, Value)); }
 
 		Range<Type> Expand(const Type &Amount) const
-			{ return Range<Type>(std::min(Min, Min + Amount), std::max(Max, Max + Amount)); }
+			{ return Range<Type>((std::min)(Min, Min + Amount), (std::max)(Max, Max + Amount)); }
 
 		Range<Type> &Contract(const Type &Amount)
 		{
-			Min = std::min(std::max(Min, Min + Amount), Max);
-			Max = std::max(std::min(Max, Max + Amount), Min);
+			Min = (std::min)((std::max)(Min, Min + Amount), Max);
+			Max = (std::max)((std::min)(Max, Max + Amount), Min);
 			return *this;
 		}
 
@@ -70,7 +70,7 @@ template <typename Type> class Range
 			{ return (Min < Operand.Max) && (Operand.Min <= Max); }
 
 		Type Shared(const Range<Type> &Operand) const // Negative if not intersecting
-			{ return std::min(Max, Operand.Max) - std::max(Min, Operand.Min); }
+			{ return (std::min)(Max, Operand.Max) - (std::max)(Min, Operand.Min); }
 
 		Type SpaceDifference(const Range<Type> &Operand) const // Negative if right of operand - bad if intersecting
 		{
@@ -93,7 +93,7 @@ template <typename Type> class Range
 		}
 
 		Type Constrain(const Type &Operand) const
-			{ return std::max(std::min(Operand, Max), Min); }
+			{ return (std::max)((std::min)(Operand, Max), Min); }
 
 		Type Wrap(const Type &Operand) const
 		{
@@ -120,7 +120,7 @@ typedef Range<float> RangeF;
 // Mixes values
 template <typename Type> inline Type Mix(const Type &Start, const Type &End, const float Percent)
 {
-	return (End - Start) * std::min(std::max(0.0f, Percent), 1.0f) + Start;
+	return (End - Start) * (std::min)((std::max)(0.0f, Percent), 1.0f) + Start;
 }
 
 // Orders two values
