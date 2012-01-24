@@ -8,6 +8,7 @@
 #include <set>
 #include <queue>
 #include <deque>
+#include <map>
 #include <algorithm>
 
 #include <iostream>
@@ -21,6 +22,8 @@ template <class Type> class Anchor
 		Anchor(Type *Data) : Data(Data) {}
 		~Anchor(void) { delete Data; }
 		operator Type*(void) { return Data; }
+		operator Type&(void) { return *Data; }
+		operator Type const&(void) const { return *Data; }
 		Type *operator *(void) { return Data; }
 		Type *operator ->(void) { assert(Data != NULL); return Data; }
 		Anchor<Type> &operator =(Anchor<Type> const &Other) { assert(false); }
@@ -165,6 +168,31 @@ template <class Type, class Base = std::deque<Type *> > class DeleterQueue : pub
 		{
 			while (!Container::empty())
 				{ delete Container::front(); Container::pop(); }
+		}
+};
+
+template <class Key, class Value> class DeleterMap : public std::map<Key, Value *>
+{
+	public:
+		typedef std::map<Key, Value *> Container;
+		
+		~DeleterMap(void)
+		{
+			for (typename Container::iterator CurrentItem = Container::begin(); CurrentItem != Container::end(); CurrentItem++)
+				delete CurrentItem->second;
+		}
+		
+		void clear(void)
+		{
+			for (typename Container::iterator CurrentItem = Container::begin(); CurrentItem != Container::end(); CurrentItem++)
+				delete CurrentItem->second;
+			Container::clear();
+		}
+		
+		void erase(typename Container::iterator Element)
+		{
+			delete Element->second;
+			Container::erase(Element);
 		}
 };
 

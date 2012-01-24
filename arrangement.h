@@ -9,100 +9,120 @@
 template <typename SetType> class Set : public std::set<SetType>
 {
 	public:
+		Set(void) {}
+		
+		Set(SetType const &Element)
+			{ insert(Element); }
+		
 		Set<SetType> &And(Set<SetType> const &Object)
 		{
 			insert(Object.begin(), Object.end());
 			return *this;
 		}
 		
-		Set<SetType> &And(SetType const &Object)
+		Set<SetType> &And(SetType const &Element)
 		{
-			insert(Object);
+			insert(Element);
+			return *this;
+		}
+		
+		Set<SetType> &operator=(SetType const &Element)
+		{
+			std::set<SetType>::clear();
+			insert(Element);
 			return *this;
 		}
 };
 
-template <typename FromType, typename ToType> class ManyToOneMapper
+// Only has queries for to-side, but reverse A and B to if the opposite queries are more important.
+template <typename AType, typename BType> class ManyToOneMapper
 {
+	private:
+		typedef std::pair<BType *, std::vector<AType *> > Pair;
+		std::vector<AType *> A; // Used only for debug checks
+		std::vector<Pair> Mappings;
+	
+		bool HasA(AType const &TestA) const
+			{ return std::find(A.begin(), A.end(), &TestA) != A.end(); }
+		
+		bool HasB(BType const &TestB) const
+		{ 
+			return std::find_if(Mappings.begin(), Mappings.end(), 
+				[&TestB](Pair const &Element) { return Element.first == &TestB; }) != Mappings.end();
+		}
+		
 	public:
-		void AddStart(FromType &NewStart)
+		// Construction
+		void AddA(AType &NewA)
 		{
-			assert(!HasStart(NewStart));
-			Starts.push_back(&NewStart);
+			assert(!HasA(NewA));
+			A.push_back(&NewA);
 		}
 		
-		void AddEnd(ToType &NewStop)
+		void AddB(BType &NewB)
 		{
-			assert(!HasStop(NewStop));
-			Stops.push_back(&NewStop);
-			Mappings.push_back(std::vector<FromType *>());
+			assert(!HasB(NewB));
+			Mappings.push_back(Pair(&NewB, std::vector<AType *>()));
 		}
 		
-		void RemoveStart(FromType &OldStart)
+		void RemoveA(AType &Target)
 		{
-			assert(HasStart(OldStart));
+			assert(HasA(Target));
 			
-			for (unsigned int CurrentMapping = 0; CurrentMapping < Mappings.size(); CurrentMapping++)
+			for (auto &CurrentMapping : Mappings)
 			{
-				typename std::vector<FromType *>::iterator StartPosition = std::find(Mappings[CurrentMapping].begin(), Mappings[CurrentMapping].end(), &OldStart);
-				if (StartPosition != Mappings[CurrentMapping].end())
-				{
-					Mappings[CurrentMapping].erase(StartPosition);
-					assert(std::find(Mappings[CurrentMapping].begin(), Mappings[CurrentMapping].end(), &OldStart) == Mappings[CurrentMapping].end());
-				}
+				auto APosition = std::find(CurrentMapping.second.begin(), CurrentMapping.second.end(), &Target);
+				if (APosition == CurrentMapping.second.end())
+					continue;
+				
+				CurrentMapping.second.erase(APosition);
+				
+				assert(std::find(CurrentMapping.second.begin(), CurrentMapping.second.end(), &Target) == CurrentMapping.second.end());
 			}
 			
-			Starts.erase(std::find(Starts.begin(), Starts.end(), &OldStart));
+			A.erase(std::find(A.begin(), A.end(), &Target));
 		}
 		
-		void RemoveEnd(ToType &OldStop)
+		void RemoveB(BType &Target)
 		{
-			assert(HasStop(OldStop));
-			
-			typename std::vector<ToType *>::iterator OldStopPosition = std::find(Stops.begin(), Stops.end(), &OldStop);
-			Mappings.erase(Mappings.begin() + (OldStopPosition - Stops.begin()));
-			Stops.erase(OldStopPosition);
+			assert(HasB(Target));
+			auto TargetPosition = std::find_if(Mappings.begin(), Mappings.end(),
+				[&Target](Pair const &Element) { return Element.first == &Target; });
+			Mappings.erase(TargetPosition);
 		}
 		
-		unsigned int GetMappingCount(void) const
-			{ return Mappings.size(); }
-			
-		std::vector<FromType *> const &GetMappings(unsigned int Index, ToType *&ToOutput) const
+		void Connect(AType &A, BType &B)
 		{
-			assert(Index < Stops.size());
-			ToOutput = Stops[Index];
-			return Mappings[Index];
+			assert(HasA(A));
+			assert(HasB(B));
+			auto BMappings = std::find_if(Mappings.begin(), Mappings.end(), 
+				[&B](Pair const &Element) { return Element.first == &B; });
+			assert(std::find(BMappings->second.begin(), BMappings->second.end(), &A) == BMappings->second.end());
+			BMappings->second.push_back(&A);
 		}
 		
-		void Connect(FromType &Start, ToType &Stop)
+		void Disconnect(AType &A, BType &B)
 		{
-			assert(HasStart(Start));
-			assert(HasStop(Stop));
-			unsigned int StopIndex = std::find(Stops.begin(), Stops.end(), &Stop) - Stops.begin();
-			assert(std::find(Mappings[StopIndex].begin(), Mappings[StopIndex].end(), &Start) == Mappings[StopIndex].end());
-			Mappings[StopIndex].push_back(&Start);
+			assert(HasA(A));
+			assert(HasB(B));
+			auto BMappings = std::find_if(Mappings.begin(), Mappings.end(),
+				[&B](Pair const &Element) { return Element.first == &B; });
+			auto APosition = std::find(BMappings->second.begin(), BMappings->second.end(), &A);
+			assert(APosition != BMappings->second.end());
+			BMappings->second.erase(APosition);
 		}
 		
-		void Disconnect(FromType &Start, ToType &Stop)
+		// Access - for range based for.
+		// Returns pairs of (To, vector of all connected froms)
+		decltype(Mappings.begin()) begin(void) { return Mappings.begin(); }
+		decltype(Mappings.end()) end(void) { return Mappings.end(); }
+		
+		Pair const &GetBMappings(BType const &Target)
 		{
-			assert(HasStart(Start));
-			assert(HasStop(Stop));
-			unsigned int StopIndex = std::find(Stops.begin(), Stops.end(), &Stop) - Stops.begin();
-			typename std::vector<FromType *>::iterator StartPosition = std::find(Mappings[StopIndex].begin(), Mappings[StopIndex].end(), &Start);
-			assert(StartPosition != Mappings[StopIndex].end());
-			Mappings[StopIndex].erase(StartPosition);
+			assert(HasB(Target));
+			return *std::find_if(Mappings.begin(), Mappings.end(),
+				[&Target](Pair const &Element) { return Element.first == &Target; });
 		}
-		
-	private:
-		std::vector<FromType *> Starts;
-		std::vector<ToType *> Stops;
-		std::vector<std::vector<FromType *> > Mappings;
-	
-		bool HasStart(FromType const &Start) const
-			{ return std::find(Starts.begin(), Starts.end(), &Start) != Starts.end(); }
-		
-		bool HasStop(ToType const &Stop) const
-			{ return std::find(Stops.begin(), Stops.end(), &Stop) != Stops.end(); }
 };
 
 #endif
