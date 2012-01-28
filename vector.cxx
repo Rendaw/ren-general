@@ -1,6 +1,7 @@
 #include "vector.h"
 
 #include <math.h>
+#include <cassert>
 
 // Vector 3D =======================================================================================
 // Operators - base operations
@@ -19,6 +20,9 @@ Vector::Vector(const Vector &Operand)
 
 Vector::Vector(const float x, const float y, const float z)
 {
+	assert(!isnan(x) && !isinf(x));
+	assert(!isnan(y) && !isinf(y));
+	assert(!isnan(z) && !isinf(z));
 	Data[0] = x;
 	Data[1] = y;
 	Data[2] = z;
@@ -26,6 +30,7 @@ Vector::Vector(const float x, const float y, const float z)
 
 Vector::Vector(const FlatVector &Operand, const float z)
 {
+	assert(!isnan(z) && !isinf(z));
 	Data[0] = Operand[0];
 	Data[1] = Operand[1];
 	Data[2] = z;
@@ -77,6 +82,7 @@ Vector Vector::operator *= (const Vector &Operand)
 
 Vector Vector::operator *= (const float &Scalar)
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return *this = *this * Scalar;
 }
 
@@ -87,6 +93,7 @@ Vector Vector::operator / (const Vector &Operand) const
 
 Vector Vector::operator / (const float &Scalar) const
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return Vector(Data[0] / Scalar, Data[1] / Scalar, Data[2] / Scalar);
 }
 
@@ -97,6 +104,7 @@ Vector Vector::operator /= (const Vector &Operand)
 
 Vector Vector::operator /= (const float &Scalar)
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return *this = *this / Scalar;
 }
 
@@ -116,11 +124,15 @@ bool Vector::operator != (const Vector &Operand) const
 
 float &Vector::operator [] (int Element)
 {
+	assert(Element < 3);
+	assert(Element >= 0);
 	return Data[Element];
 }
 
 const float &Vector::operator [] (int Element) const
 {
+	assert(Element < 3);
+	assert(Element >= 0);
 	return Data[Element];
 }
 
@@ -152,6 +164,7 @@ void Vector::Normalize(void)
 // GLOBAL OPERATORS
 Vector operator * (const float &Scalar, const Vector &Operand)
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return Vector(Operand[0] * Scalar, Operand[1] * Scalar, Operand[2] * Scalar);
 }
 
@@ -189,6 +202,8 @@ FlatVector::FlatVector(const FlatVector &Operand)
 
 FlatVector::FlatVector(const float x, const float y)
 {
+	assert(!isnan(x) && !isinf(x));
+	assert(!isnan(y) && !isinf(y));
 	Data[0] = x;
 	Data[1] = y;
 }
@@ -233,6 +248,7 @@ FlatVector FlatVector::operator * (const FlatVector &Operand) const
 
 FlatVector FlatVector::operator * (const float &Scalar) const
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return FlatVector(Data[0] * Scalar, Data[1] * Scalar);
 }
 
@@ -243,6 +259,7 @@ FlatVector FlatVector::operator *= (const FlatVector &Operand)
 
 FlatVector FlatVector::operator *= (const float &Scalar)
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return *this = *this * Scalar;
 }
 
@@ -253,6 +270,7 @@ FlatVector FlatVector::operator / (const FlatVector &Operand) const
 
 FlatVector FlatVector::operator / (const float &Scalar) const
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return FlatVector(Data[0] / Scalar, Data[1] / Scalar);
 }
 
@@ -263,6 +281,7 @@ FlatVector FlatVector::operator /= (const FlatVector &Operand)
 
 FlatVector FlatVector::operator /= (const float &Scalar)
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return *this = *this / Scalar;
 }
 
@@ -283,11 +302,15 @@ bool FlatVector::operator != (const FlatVector &Operand) const
 
 float &FlatVector::operator [] (int Element)
 {
+	assert(Element < 2);
+	assert(Element >= 0);
 	return Data[Element];
 }
 
 const float &FlatVector::operator [] (int Element) const
 {
+	assert(Element < 2);
+	assert(Element >= 0);
 	return Data[Element];
 }
 
@@ -334,6 +357,7 @@ FlatVector FlatVector::Integer(void)
 // GLOBAL OPERATORS
 FlatVector operator * (const float &Scalar, const FlatVector &Operand)
 {
+	assert(!isnan(Scalar) && !isinf(Scalar));
 	return FlatVector(Operand[0] * Scalar, Operand[1] * Scalar);
 }
 

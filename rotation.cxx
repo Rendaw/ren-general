@@ -1,6 +1,7 @@
 #include "rotation.h"
 
 #include <math.h>
+#include <cassert>
 
 #include "vector.h"
 
@@ -21,6 +22,7 @@ Angle::Angle(void)
 
 Angle::Angle(const float &NewData)
 {
+	assert(!isnan(NewData) && !isinf(NewData));
 	*this = NewData;
 }
 
@@ -43,6 +45,7 @@ float Angle::operator - (void) const
 
 float Angle::operator + (const float &Operand) const
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	float Output = Data + Operand;
 	FixAngle(Output);
 	return Output;
@@ -50,6 +53,7 @@ float Angle::operator + (const float &Operand) const
 
 float Angle::operator += (const float &Operand)
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	Data = Data + Operand;
 	FixAngle(Data);
 	return Data;
@@ -57,6 +61,7 @@ float Angle::operator += (const float &Operand)
 
 float Angle::operator - (const float &Operand) const
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	float Output = Data - Operand;
 	FixAngle(Output);
 	return Output;
@@ -64,6 +69,7 @@ float Angle::operator - (const float &Operand) const
 
 float Angle::operator -= (const float &Operand)
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	Data = Data - Operand;
 	FixAngle(Data);
 	return Data;
@@ -71,6 +77,7 @@ float Angle::operator -= (const float &Operand)
 
 float Angle::operator * (const float &Operand) const
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	float Output = Data * Operand;
 	FixAngle(Output);
 	return Output;
@@ -78,6 +85,7 @@ float Angle::operator * (const float &Operand) const
 
 float Angle::operator *= (const float &Operand)
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	Data = Data * Operand;
 	FixAngle(Data);
 	return Data;
@@ -85,6 +93,7 @@ float Angle::operator *= (const float &Operand)
 
 float Angle::operator / (const float &Operand) const
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	float Output = Data / Operand;
 	FixAngle(Output);
 	return Output;
@@ -92,6 +101,7 @@ float Angle::operator / (const float &Operand) const
 
 float Angle::operator /= (const float &Operand)
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	Data = Data / Operand;
 	FixAngle(Data);
 	return Data;
@@ -99,6 +109,7 @@ float Angle::operator /= (const float &Operand)
 
 float Angle::operator = (const float &Operand)
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	Data = Operand;
 	FixAngle(Data);
 	return Data;
@@ -151,6 +162,10 @@ Quaternion::Quaternion(const Quaternion &Operand)
 
 Quaternion::Quaternion(float x, float y, float z, float w)
 {
+	assert(!isnan(x) && !isinf(x));
+	assert(!isnan(y) && !isinf(y));
+	assert(!isnan(z) && !isinf(z));
+	assert(!isnan(w) && !isinf(w));
 	Data[0] = x;
 	Data[1] = y;
 	Data[2] = z;
@@ -203,11 +218,13 @@ Quaternion Quaternion::operator - (const Quaternion &Operand) const
 
 Quaternion Quaternion::operator / (const float &Operand) const
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	return Quaternion(Data[0] / Operand, Data[1] / Operand, Data[2] / Operand, Data[3] / Operand);
 }
 
 Quaternion Quaternion::operator * (const float &Operand) const
 {
+	assert(!isnan(Operand) && !isinf(Operand));
 	return Quaternion(Data[0] * Operand, Data[1] * Operand, Data[2] * Operand, Data[3] * Operand);
 }
 
@@ -233,16 +250,22 @@ Quaternion Quaternion::Normal(void) const
 
 float &Quaternion::operator [] (int Element)
 {
-	if ((Element > 0) && (Element < 4))
+	assert(Element >= 0);
+	assert(Element < 4);
+	return Data[Element];
+	/*if ((Element > 0) && (Element < 4))
 		return Data[Element];
-	else return Data[0];
+	else return Data[0];*/
 }
 
 const float &Quaternion::operator [] (int Element) const
 {
-	if ((Element > 0) && (Element < 4))
+	assert(Element >= 0);
+	assert(Element < 4);
+	return Data[Element];
+	/*if ((Element > 0) && (Element < 4))
 		return Data[Element];
-	else return Data[0];
+	else return Data[0];*/
 }
 
 float *Quaternion::operator * (void)
@@ -268,6 +291,7 @@ float DotProduct(const Quaternion &Operand1, const Quaternion &Operand2)
 
 Quaternion Interpolate(float Percent, const Quaternion &Operand1, const Quaternion &Operand2)
 {
+	assert(!isnan(Percent) && !isinf(Percent));
 	float AngleDifference, OperandDot;
 	OperandDot = DotProduct(Operand1, Operand2);
 
@@ -310,6 +334,10 @@ Matrix::Matrix(float E1, float E2, float E3, float E4, float E5, float E6, float
 	Elements[6] =  E7;
 	Elements[7] =  E8;
 	Elements[8] =  E9;
+#ifndef NDEBUG
+	for (auto &Element : Elements)
+		assert(!isnan(Element) && !isinf(Element));
+#endif
 }
 
 Matrix::Matrix(const Quaternion &Parent)

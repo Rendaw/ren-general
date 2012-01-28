@@ -91,6 +91,12 @@ template <typename AType, typename BType> class ManyToOneMapper
 			Mappings.erase(TargetPosition);
 		}
 		
+		void Disconnect(void)
+		{
+			for (auto &CurrentMapping : Mappings)
+				CurrentMapping.second.clear();
+		}
+		
 		void Connect(AType &A, BType &B)
 		{
 			assert(HasA(A));
