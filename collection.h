@@ -3,6 +3,8 @@
 
 #include <functional>
 
+#include <vector>
+
 // Iterable provides a way to limit access to a container only to iterating.  Pass lambdas that return the proper iterators, then the iterable can be used for standard or range-based for loops.
 template <typename ElementType, typename IteratorType> class SimpleIterable
 {
@@ -73,6 +75,26 @@ template <typename CollectionType> class StandardReverseIterable
 		StandardReverseIterable(CollectionType &Base) : Base(Base) {}
 		decltype(Base.rbegin()) begin(void) { return Base.rbegin(); }
 		decltype(Base.rend()) end(void) { return Base.rend(); }
+};
+
+// IteratorRange provides an iterable interface to a subset of a collection defined by arbitrary begin and end iterators.
+template <typename IteratorType> class IteratorRange
+{
+	private:
+		IteratorType Begin, End;
+		
+	public:
+		IteratorRange(IteratorType Begin, IteratorType End) : Begin(Begin), End(End) {}
+		IteratorType begin(void) { return Begin; }
+		IteratorType end(void) { return End; }
+};
+
+template <typename ElementType> class VectorIteratorRange : public IteratorRange<typename std::vector<ElementType>::iterator> 
+{
+	public: 
+		VectorIteratorRange(typename std::vector<ElementType>::iterator Begin, typename std::vector<ElementType>::iterator End) : 
+			IteratorRange<typename std::vector<ElementType>::iterator>(Begin, End) 
+			{}
 };
 
 #endif
