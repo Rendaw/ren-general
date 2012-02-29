@@ -1,5 +1,14 @@
 #include "exception.h"
 
-Failure::Failure(String const &Explanation) :
+namespace Error
+{
+
+Construction::Construction(String const &Explanation) :
 	Explanation(Explanation)
 	{}
+
+Validation::Validation(String const &Explanation) :
+	Explanation(Explanation)
+	{}
+
+}

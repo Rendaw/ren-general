@@ -3,12 +3,25 @@
 
 #include "string.h"
 
-class Failure
+namespace Error
+{
+
+class Construction
 {
 	public:
-		Failure(String const &Explanation);
+		Construction(String const &Explanation);
 	
 		String Explanation;
 };
+
+class Validation
+{
+	public:
+		Validation(String const &Explanation);
+	
+		String Explanation;
+};
+
+}
 
 #endif
