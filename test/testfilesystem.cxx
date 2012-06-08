@@ -11,8 +11,28 @@ inline void AssertEqual(String const &Got, String const &Expected)
 
 inline void AssertEqual(unsigned int Got, unsigned int Expected)
 {
-	std::cout << "Checking " << Got << " against " << Expected << std::endl;
+	//std::cout << "Checking " << Got << " against " << Expected << std::endl;
 	assert(Got == Expected);
+}
+
+inline void AssertEqual(std::list<String> Got, std::list<String> Expected)
+{
+	Got.sort();
+	Expected.sort();
+	//std::cout << "Checking string lists:" << std::endl;
+	//std::cout << "\tGot:";
+	//for (auto &Element : Got) std::cout << " \"" << Element << "\"";
+	//std::cout << std::endl;
+	//std::cout << "\tExpected:";
+	//for (auto &Element : Expected) std::cout << " \"" << Element << "\"";
+	//std::cout << std::endl;
+	assert(Got.size() == Expected.size());
+	std::list<String>::const_iterator ExpectedElement = Expected.begin();
+	for (auto &GotElement : Got)
+	{
+		assert(GotElement == *ExpectedElement);
+		++ExpectedElement;
+	}
 }
 
 inline void AssertTrue(bool Expression)
@@ -58,9 +78,23 @@ int main(int argc, char **argv)
 	AssertEqual(FilePath(Prefix + u8"/c.txt").Directory().AsAbsoluteString(), Prefix + u8"/");
 	AssertEqual(FilePath(Prefix + u8"/a/c.txt").File(), u8"c.txt");
 	AssertEqual(FilePath(Prefix + u8"/a/c.txt").Directory().AsAbsoluteString(), Prefix + u8"/a");
-	String Unicode1(u8"\x5B\x50\x4F\x9B"), Unicode2(u8"\x59\x27\x4E\xBA"), Unicode3(u8"\x30\xD5\x30\xA6\x30\xC1\x30\xE7\x30\xA6\x79\xD1");
+	String Unicode1(u8"\xE5\xAD\x90\xE4\xBE\x9B"), Unicode2(u8"\xE5\xA4\xA7\x20\xE4\xBA\xBA"), Unicode3(u8"\xE3\x83\x95\xE3\x82\xA6\xE3\x83\x81\xE3\x83\xA7\xE3\x82\xA6\xE7\xA7\x91");
 	FilePath UnicodePath(Prefix + u8"/" + Unicode1 + u8"/" + Unicode2 + u8"/" + Unicode3 + u8".txt");
 	AssertEqual(UnicodePath.File(), Unicode3 + u8".txt");
 	AssertEqual(DirectoryPath(u8"/").Enter(Unicode1).AsAbsoluteString(), Prefix + u8"/" + Unicode1);
+	AssertEqual(LocateWorkingDirectory().Enter(u8"filesystemtesttree").ListDirectories(), {"a", "b"});
+	AssertEqual(LocateWorkingDirectory().Enter(u8"filesystemtesttree").Enter(u8"a").ListFiles(), {"1.txt", "2.txt", "3.txt"});
+	std::list<String> DiscoveredFiles;
+	LocateWorkingDirectory().Enter(u8"filesystemtesttree").Walk([&](FilePath const &File) { DiscoveredFiles.push_back(File.File()); });
+	AssertEqual(DiscoveredFiles, {"1.txt", "2.txt", "3.txt", "4.txt", "5.txt", "6.txt"});
+	FilePath UnicodeFile = LocateWorkingDirectory().Select(Unicode1);
+	{ 
+		//OutputStream UnicodeFileOutput(UnicodeFile); // Not supported by GCC right now?
+		OutputStream UnicodeFileOutput(AsNativeString(UnicodeFile)); 
+		AssertTrue(!!UnicodeFileOutput);
+	}
+	//AssertTrue(UnicodeFile.Delete());
+	//FilePath Unicode2File = LocateWorkingDirectory().Select(Unicode2);
+	//OutputStream Unicode2Output(AsNativeString(Unicode2File));
 }
 

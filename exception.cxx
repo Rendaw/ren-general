@@ -11,4 +11,8 @@ Validation::Validation(String const &Explanation) :
 	Explanation(Explanation)
 	{}
 
+System::System(String const &Explanation) :
+	Explanation(Explanation)
+	{}
+
 }

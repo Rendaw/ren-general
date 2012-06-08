@@ -1,6 +1,7 @@
 NAME = general
 OBJECTS = objects/annals.o objects/time.o objects/statemachine.o objects/exception.o \
-	objects/range.o objects/region.o objects/color.o objects/rotation.o objects/vector.o
+	objects/range.o objects/region.o objects/color.o objects/rotation.o objects/vector.o \
+	objects/filesystem.o objects/string.o
 COMPILE_EXTRA = 
 LINK_EXTRA = 
 
@@ -33,3 +34,10 @@ objects/time.o objects/time.debug.o: time.cxx time.h
 
 objects/statemachine.o objects/statemachine.debug.o: statemachine.cxx statemachine.h
 	$(COMPILE) $@ statemachine.cxx
+
+objects/filesystem.o objects/filesystem.debug.o: filesystem.cxx filesystem.h
+	$(COMPILE) $@ filesystem.cxx
+
+objects/string.o objects/string.debug.o: string.cxx string.h
+	$(COMPILE) $@ string.cxx
+

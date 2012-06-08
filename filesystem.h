@@ -2,6 +2,7 @@
 #define filesystem_h
 
 #include <list>
+#include <functional>
 
 #include "string.h"
 
@@ -15,6 +16,10 @@ class Path
 		virtual ~Path(void);
 
 		virtual String AsAbsoluteString(void) const;
+		operator char const *(void) const;
+		operator String(void) const;
+		//operator NativeString(void) const;
+
 		virtual String AsRelativeString(DirectoryPath const &From) const;
 		bool IsRoot(void) const;
 		unsigned int Depth(void) const;
@@ -41,7 +46,7 @@ class FilePath : public Path
 		operator InputStream&&(void) const;
 		operator OutputStream&&(void) const;
 
-		void Delete(void) const;
+		bool Delete(void) const;
 	private:
 		friend class DirectoryPath;
 		FilePath(Path::PartCollection const &Parts, String const &Filename);
@@ -50,12 +55,18 @@ class FilePath : public Path
 class DirectoryPath : public Path
 {
 	public:
+		DirectoryPath(void);
 		DirectoryPath(String const &AbsolutePath);
+		
+		bool Create(bool EnsureAncestors) const;
 
-		DirectoryPath Exit(void) const;
-		DirectoryPath Enter(String const &Directory) const;
+		DirectoryPath &Exit(void);
+		DirectoryPath &Enter(String const &Directory);
 		FilePath Select(String const &File) const;
 
+		std::list<String> ListFiles(void) const;
+		std::list<String> ListDirectories(void) const;
+		void Walk(std::function<void(FilePath const &File)> const &Handler) const;
 		DirectoryPath FindCommonRoot(DirectoryPath const &Other) const;
 	private:
 		friend class FilePath;

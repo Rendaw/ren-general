@@ -4,6 +4,13 @@
 
 #include "exception.h"
 
+#ifdef WINDOWS
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+#endif
+
 // My policy on case insensitivity on Windows: pretend it doesn't exist.  If two paths with different cases are compared, subsetted, whatever, they will be considered inequivalent.
 
 class PathStringIterator
@@ -100,6 +107,12 @@ String Path::AsAbsoluteString(void) const
 	return Out.str();
 }
 
+Path::operator char const *(void) const
+	{ return AsAbsoluteString().c_str(); }
+
+Path::operator String(void) const
+	{ return AsAbsoluteString(); }
+
 String Path::AsRelativeString(DirectoryPath const &From) const
 {
 	StringStream Out;
@@ -163,43 +176,155 @@ String FilePath::File(void) const { return Parts.back(); }
 
 DirectoryPath FilePath::Directory(void) const { return DirectoryPath(PartCollection(Parts.begin(), --Parts.end())); }
 
-InputStream &&FilePath::Read(void) const { return std::move(InputStream(AsNativeString(AsAbsoluteString()).c_str())); }
+InputStream &&FilePath::Read(void) const { return std::move(InputStream(AsNativeString(*this).c_str())); }
 
-OutputStream &&FilePath::Write(void) const { return std::move(OutputStream(AsNativeString(AsAbsoluteString()).c_str())); }
+OutputStream &&FilePath::Write(void) const { return std::move(OutputStream(AsNativeString(*this).c_str())); }
 
 FilePath::operator InputStream&&(void) const { return Read(); }
 
 FilePath::operator OutputStream&&(void) const { return Write(); }
 
-void FilePath::Delete(void) const 
+bool FilePath::Delete(void) const 
 {
 #ifdef WINDOWS
-	_wunlink(AsNativeString(AsAbsoluteString()).c_str());
+	return _wunlink(AsNativeString(AsAbsoluteString()).c_str()) == 0;
 #else
-	unlink(AsAbsoluteString().c_str()); 
+	return unlink(AsAbsoluteString().c_str()) == 0; 
 #endif
 }
 
 FilePath::FilePath(Path::PartCollection const &Parts, String const &Filename) : Path(Parts)
 	{ this->Parts.push_back(Filename); }
 
+DirectoryPath::DirectoryPath(void) : Path(Path::PartCollection()) {}
+
 DirectoryPath::DirectoryPath(String const &Absolute) : Path(Absolute) {}
 
-DirectoryPath DirectoryPath::Exit(void) const
+bool DirectoryPath::Create(bool EnsureAncestors) const
 {
-	assert(!IsRoot());
-	return DirectoryPath(std::list<String>(Parts.begin(), --Parts.end()));
+	auto MakeSingleDirectory = [](DirectoryPath const &Ancestor) -> bool
+	{
+#ifdef WINDOWS
+		int Result = _wmkdir(Ancestor);
+#else
+		int Result = mkdir(Ancestor, 777);
+#endif
+		if (Result == -1 && errno != EEXIST)
+			return false;
+		return true;
+	};
+
+	if (EnsureAncestors)
+	{
+		DirectoryPath Ancestor;
+		for (Path::PartCollection::const_iterator CurrentPart = Parts.begin(); CurrentPart != Parts.end(); CurrentPart++)
+		{
+			Ancestor.Enter(*CurrentPart);
+			if (!MakeSingleDirectory(Ancestor))
+				return false;
+		}
+		return true;
+	}
+	else
+	{
+		return MakeSingleDirectory(*this);
+	}
 }
 
-DirectoryPath DirectoryPath::Enter(String const &Directory) const
+DirectoryPath &DirectoryPath::Exit(void)
 {
-	std::list<String> Out(Parts);
-	Out.push_back(Directory);
-	return DirectoryPath(std::move(Out));
+	assert(!IsRoot());
+	Parts.pop_back();
+	return *this;
+}
+
+DirectoryPath &DirectoryPath::Enter(String const &Directory)
+{
+	Parts.push_back(Directory);
+	return *this;
 }
 
 FilePath DirectoryPath::Select(String const &File) const
 	{ return FilePath(Parts, File); }
+
+static void ProcessDirectoryContents(String const &DirectoryName, std::function<void(String const &Element, bool IsFile)> Process)
+{
+#ifdef WINDOWS
+	WIN32_FIND_DATA ElementInfo;
+	HANDLE DirectoryResource;
+	DirectoryResource = FindFirstFile(AsNativeString(DirectoryName).c_str(), &ElementInfo);
+	if (DirectoryResource == INVALID_HANDLE_VALUE) return;
+	do Process(AsString(NativeString(ElementInfo.cFileName)), ElementInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+		while (FindNextFile(DirectoryResource, &ElementInfo) != 0);
+	FindClose(DirectorResource);
+#else
+	DIR *DirectoryResource = opendir(DirectoryName.c_str());
+	if (DirectoryResource == nullptr) return;
+	
+	dirent *ElementInfo;
+	while ((ElementInfo = readdir(DirectoryResource)) != nullptr)
+	{
+		String ElementName(ElementInfo->d_name);
+		if ((ElementName == ".") || (ElementName == "..")) continue;
+		Process(std::move(ElementName), ElementInfo->d_type != DT_DIR);
+	}
+
+	closedir(DirectoryResource);
+#endif
+}
+
+std::list<String> DirectoryPath::ListFiles(void) const
+{
+	std::list<String> Out;
+	ProcessDirectoryContents(*this, [&](String const &Element, bool IsFile) { if (IsFile) Out.push_back(Element); });
+	return std::move(Out);
+}
+
+std::list<String> DirectoryPath::ListDirectories(void) const
+{
+	std::list<String> Out;
+	ProcessDirectoryContents(*this, [&](String const &Element, bool IsFile) { if (!IsFile) Out.push_back(Element); });
+	return std::move(Out);
+}
+
+void DirectoryPath::Walk(std::function<void(FilePath const &File)> const &Process) const
+{
+	std::list<String> Transitions;
+	DirectoryPath Marker(*this);
+
+	auto ProcessFiles = [&]()
+		{ for (auto &File : Marker.ListFiles()) Process(Marker.Select(File)); };
+
+	auto QueueNewTransitions = [&]()
+	{
+		// Add new transitions from directories in current directory
+		std::list<String> Directories = Marker.ListDirectories();
+		Transitions.insert(Transitions.begin(), Directories.begin(), Directories.end());
+	};
+
+	// Perform a depth first exploration of the filesystem subtree.  Files are processed before directories.
+	ProcessFiles();
+	QueueNewTransitions();
+
+	while (!Transitions.empty())
+	{
+		String NextTransition = Transitions.front();
+		Transitions.pop_front();
+
+		// If there's an empty transition, move back up
+		if (NextTransition.empty())
+		{
+			Marker.Exit();
+			continue;
+		}
+
+		// Otherwise, enter the next directory and process it.
+		Marker.Enter(NextTransition);
+		Transitions.push_front("");
+		QueueNewTransitions();
+		ProcessFiles();
+	}
+}
 
 DirectoryPath DirectoryPath::FindCommonRoot(DirectoryPath const &Other) const
 {
