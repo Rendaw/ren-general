@@ -1,6 +1,7 @@
 #include "filesystem.h"
 
 #include <cassert>
+#include <unistd.h>
 
 #include "exception.h"
 
@@ -176,13 +177,17 @@ String FilePath::File(void) const { return Parts.back(); }
 
 DirectoryPath FilePath::Directory(void) const { return DirectoryPath(PartCollection(Parts.begin(), --Parts.end())); }
 
-InputStream &&FilePath::Read(void) const { return std::move(InputStream(AsNativeString(*this).c_str())); }
+FileInput &&FilePath::Read(void) const { return std::move(FileInput(AsNativeString(*this).c_str())); }
 
-OutputStream &&FilePath::Write(void) const { return std::move(OutputStream(AsNativeString(*this).c_str())); }
+FileOutput &&FilePath::Write(bool Append, bool Truncate) const 
+{ 
+	return std::move(FileOutput(AsNativeString(*this), 
+		FileOutput::out | (Append ? FileOutput::app : FileOutput::openmode(0)) | (Truncate ? FileOutput::trunc : FileOutput::openmode(0)))); 
+}
 
-FilePath::operator InputStream&&(void) const { return Read(); }
+FilePath::operator FileInput&&(void) const { return Read(); }
 
-FilePath::operator OutputStream&&(void) const { return Write(); }
+FilePath::operator FileOutput&&(void) const { return Write(); }
 
 bool FilePath::Delete(void) const 
 {

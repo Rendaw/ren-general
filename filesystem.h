@@ -41,10 +41,10 @@ class FilePath : public Path
 		String File(void) const;
 		DirectoryPath Directory(void) const;
 
-		InputStream &&Read(void) const;
-		OutputStream &&Write(void) const;
-		operator InputStream&&(void) const;
-		operator OutputStream&&(void) const;
+		FileInput &&Read(void) const;
+		FileOutput &&Write(bool Append = false, bool Truncate = false) const;
+		operator FileInput&&(void) const;
+		operator FileOutput&&(void) const;
 
 		bool Delete(void) const;
 	private:

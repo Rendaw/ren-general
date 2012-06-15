@@ -5,16 +5,13 @@
 #include <iostream>
 #include <stdlib.h>
 
-AnnalsBase::AnnalsBase(const String &FileOutputLocation) :
+AnnalsBase::AnnalsBase(FilePath const &FileOutputLocation) :
 	FileLevel(rlDefault), ConsoleLevel(rlWarnings),
-	DefaultFilename(FileOutputLocation), FileOutput(new OutputStream(FileOutputLocation.c_str())),
-	ExtraLedger(NULL)
+	DefaultLocation(FileOutputLocation), FileOutputInstance(FileOutputLocation.AsAbsoluteString()), // TODO Use move constructor when libstdc++ supports it
+	ExtraLedger(nullptr)
 	{}
 
-AnnalsBase::~AnnalsBase(void)
-{
-	delete FileOutput;
-}
+AnnalsBase::~AnnalsBase(void) { } 
 
 void AnnalsBase::SetExtraLedger(Ledger *NewLedger)
 {
@@ -25,8 +22,9 @@ void AnnalsBase::DefaultSettings(void)
 {
 	FileLevel = rlDefault;
 	ConsoleLevel = rlWarnings;
-	delete FileOutput;
-	FileOutput = new OutputStream(DefaultFilename.c_str(), OutputStream::app);
+	//FileOutputInstance = DefaultLocation.Write(true); // TODO Use move assignment when libstdc++ supports it
+	FileOutputInstance.close();
+	FileOutputInstance.open(DefaultLocation.AsAbsoluteString(), FileOutput::app);
 }
 
 void AnnalsBase::SetFileOutput(bool On, int MinimumLevel)
@@ -35,10 +33,11 @@ void AnnalsBase::SetFileOutput(bool On, int MinimumLevel)
 	else FileLevel = MinimumLevel;
 }
 
-void AnnalsBase::SetFileOutputLocation(const String &Location)
-{
-	delete FileOutput;
-	FileOutput = new OutputStream(Location.c_str(), OutputStream::app | OutputStream::trunc);
+void AnnalsBase::SetFileOutputLocation(FilePath const &Location)
+{ 
+	//FileOutputInstance = Location.Write(true, true); // TODO Use move assignment when libstdc++ supports it
+	FileOutputInstance.close();
+	FileOutputInstance.open(DefaultLocation.AsAbsoluteString(), FileOutput::app | FileOutput::trunc);
 }
 
 void AnnalsBase::SetConsoleOutput(bool On, int MinimumLevel)
@@ -76,7 +75,7 @@ void AnnalsBase::Log(int Level, const String &Message, String Extra)
 		Rendered << "\t" << Extra << "\n";
 	}
 
-	if (Level >= FileLevel) *FileOutput << Rendered.str() << std::flush;
+	if (Level >= FileLevel) FileOutputInstance << Rendered.str() << std::flush;
 	if (Level >= ConsoleLevel) std::cout << Rendered.str() << std::flush;
 }
 
@@ -101,6 +100,6 @@ static AnnalsBase *GeneralAnnalsInstance(NULL);
 AnnalsBase &GeneralAnnals(void)
 {
 	if (GeneralAnnalsInstance == NULL)
-		GeneralAnnalsInstance = new AnnalsBase("generallog.txt");
+		GeneralAnnalsInstance = new AnnalsBase(LocateWorkingDirectory().Select("generallog.txt"));
 	return *GeneralAnnalsInstance;
 }

@@ -89,12 +89,12 @@ int main(int argc, char **argv)
 	AssertEqual(DiscoveredFiles, {"1.txt", "2.txt", "3.txt", "4.txt", "5.txt", "6.txt"});
 	FilePath UnicodeFile = LocateWorkingDirectory().Select(Unicode1);
 	{ 
-		//OutputStream UnicodeFileOutput(UnicodeFile); // Not supported by GCC right now?
-		OutputStream UnicodeFileOutput(AsNativeString(UnicodeFile)); 
+		//FileOutput UnicodeFileOutput(UnicodeFile); // Not supported by GCC right now?
+		FileOutput UnicodeFileOutput(AsNativeString(UnicodeFile)); 
 		AssertTrue(!!UnicodeFileOutput);
 	}
 	//AssertTrue(UnicodeFile.Delete());
 	//FilePath Unicode2File = LocateWorkingDirectory().Select(Unicode2);
-	//OutputStream Unicode2Output(AsNativeString(Unicode2File));
+	//FileOutput Unicode2Output(AsNativeString(Unicode2File));
 }
 

@@ -14,8 +14,12 @@ typedef std::u16string NativeString;
 #else
 typedef std::string NativeString;
 #endif
-typedef std::ifstream InputStream;
-typedef std::ofstream OutputStream;
+
+typedef std::istream InputStream;
+typedef std::ostream OutputStream;
+
+typedef std::ifstream FileInput;
+typedef std::ofstream FileOutput;
 typedef std::stringstream StringStream;
 
 /* TODO Support utf-8

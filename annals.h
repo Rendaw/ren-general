@@ -2,6 +2,7 @@
 #define annals_h
 
 #include "string.h"
+#include "filesystem.h"
 
 /*
 The verbosity levels are at no output (level 9) to quite verbose (level 1).  Not
@@ -34,14 +35,14 @@ class Ledger
 class AnnalsBase
 {
 	public:
-		AnnalsBase(const String &FileOutputLocation);
+		AnnalsBase(FilePath const &FileOutputLocation);
 		~AnnalsBase(void);
 
 		void SetExtraLedger(Ledger *ExtraLedger);
 
 		void DefaultSettings(void);
 		void SetFileOutput(bool On, int MinimumLevel = 5);
-		void SetFileOutputLocation(const String &Location = String("log.txt"));
+		void SetFileOutputLocation(FilePath const &Location);
 		void SetConsoleOutput(bool On = true, int MinimumLevel = 6);
 		//void SetScreenOutput(bool On = false, int MinimumLevel = 4);
 
@@ -58,8 +59,8 @@ class AnnalsBase
 	private:
 		int FileLevel, ConsoleLevel;
 
-		String DefaultFilename;
-		OutputStream *FileOutput;
+		FilePath DefaultLocation;
+		FileOutput FileOutputInstance;
 
 		Ledger *ExtraLedger;
 };
