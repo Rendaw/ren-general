@@ -1,0 +1,16 @@
+include_rules
+
+SOURCES = ../annals.cxx ../time.cxx ../statemachine.cxx ../exception.cxx \
+	../range.cxx ../region.cxx ../color.cxx ../rotation.cxx ../vector.cxx \
+	../filesystem.cxx ../string.cxx
+
+ifeq ($(DEBUG),true)
+	: foreach $(SOURCES) |> !compiledebug |> %B.debug.o {debugobjects}
+	: {debugobjects} |> !lightarchive |> library.debug.a
+endif
+
+ifeq ($(RELEASE),true)
+	: foreach $(SOURCES) |> !compilerelease |> %B.o {releaseobjects}
+	: {releaseobjects} |> !bundle |> library.a
+endif
+
