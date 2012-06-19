@@ -21,7 +21,7 @@ template <typename SetType> class Set : public std::set<SetType>
 			insert(Object.begin(), Object.end());
 			return *this;
 		}
-		
+
 		Set<SetType> &And(SetType const &Element)
 		{
 			insert(Element);
@@ -37,9 +37,6 @@ template <typename SetType> class Set : public std::set<SetType>
 
 		bool Contains(SetType const &Element) const
 			{ return find(Element) != std::set<SetType>::end(); }
-
-		bool operator[](SetType const &Element) const
-			{ return Contains(Element); }
 };
 
 // Only has queries for to-side, but reverse A and B to if the opposite queries are more important.
