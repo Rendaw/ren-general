@@ -36,7 +36,7 @@ template <typename SetType> class Set : public std::set<SetType>
 		}
 
 		bool Contains(SetType const &Element) const
-			{ return find(Element) != end(); }
+			{ return find(Element) != std::set<SetType>::end(); }
 
 		bool operator[](SetType const &Element) const
 			{ return Contains(Element); }
