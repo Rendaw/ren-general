@@ -12,26 +12,26 @@ template <typename SetType> class Set : public std::set<SetType>
 		Set(void) {}
 
 		Set(SetType const &Element)
-			{ insert(Element); }
+			{ std::set<SetType>::insert(Element); }
 
 		Set(std::initializer_list<SetType> Elements) : std::set<SetType>(Elements) {}
 
 		Set<SetType> &And(Set<SetType> const &Object)
 		{
-			insert(Object.begin(), Object.end());
+			std::set<SetType>::insert(Object.begin(), Object.end());
 			return *this;
 		}
 
 		Set<SetType> &And(SetType const &Element)
 		{
-			insert(Element);
+			std::set<SetType>::insert(Element);
 			return *this;
 		}
 
 		Set<SetType> &operator=(SetType const &Element)
 		{
 			std::set<SetType>::clear();
-			insert(Element);
+			std::set<SetType>::insert(Element);
 			return *this;
 		}
 
