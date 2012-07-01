@@ -10,12 +10,12 @@ template <typename SetType> class Set : public std::set<SetType>
 {
 	public:
 		Set(void) {}
-		
+
 		Set(SetType const &Element)
 			{ insert(Element); }
 
 		Set(std::initializer_list<SetType> Elements) : std::set<SetType>(Elements) {}
-		
+
 		Set<SetType> &And(Set<SetType> const &Object)
 		{
 			insert(Object.begin(), Object.end());
@@ -27,7 +27,7 @@ template <typename SetType> class Set : public std::set<SetType>
 			insert(Element);
 			return *this;
 		}
-		
+
 		Set<SetType> &operator=(SetType const &Element)
 		{
 			std::set<SetType>::clear();
@@ -36,7 +36,7 @@ template <typename SetType> class Set : public std::set<SetType>
 		}
 
 		bool Contains(SetType const &Element) const
-			{ return find(Element) != std::set<SetType>::end(); }
+			{ return std::set<SetType>::find(Element) != std::set<SetType>::end(); }
 };
 
 // Only has queries for to-side, but reverse A and B to if the opposite queries are more important.
@@ -46,16 +46,16 @@ template <typename AType, typename BType> class ManyToOneMapper
 		typedef std::pair<BType *, std::vector<AType *> > Pair;
 		std::vector<AType *> A; // Used only for debug checks
 		std::vector<Pair> Mappings;
-	
+
 		bool HasA(AType const &TestA) const
 			{ return std::find(A.begin(), A.end(), &TestA) != A.end(); }
-		
+
 		bool HasB(BType const &TestB) const
-		{ 
-			return std::find_if(Mappings.begin(), Mappings.end(), 
+		{
+			return std::find_if(Mappings.begin(), Mappings.end(),
 				[&TestB](Pair const &Element) { return Element.first == &TestB; }) != Mappings.end();
 		}
-		
+
 	public:
 		// Construction
 		void AddA(AType &NewA)
@@ -63,31 +63,31 @@ template <typename AType, typename BType> class ManyToOneMapper
 			assert(!HasA(NewA));
 			A.push_back(&NewA);
 		}
-		
+
 		void AddB(BType &NewB)
 		{
 			assert(!HasB(NewB));
 			Mappings.push_back(Pair(&NewB, std::vector<AType *>()));
 		}
-		
+
 		void RemoveA(AType &Target)
 		{
 			assert(HasA(Target));
-			
+
 			for (auto &CurrentMapping : Mappings)
 			{
 				auto APosition = std::find(CurrentMapping.second.begin(), CurrentMapping.second.end(), &Target);
 				if (APosition == CurrentMapping.second.end())
 					continue;
-				
+
 				CurrentMapping.second.erase(APosition);
-				
+
 				assert(std::find(CurrentMapping.second.begin(), CurrentMapping.second.end(), &Target) == CurrentMapping.second.end());
 			}
-			
+
 			A.erase(std::find(A.begin(), A.end(), &Target));
 		}
-		
+
 		void RemoveB(BType &Target)
 		{
 			assert(HasB(Target));
@@ -95,23 +95,23 @@ template <typename AType, typename BType> class ManyToOneMapper
 				[&Target](Pair const &Element) { return Element.first == &Target; });
 			Mappings.erase(TargetPosition);
 		}
-		
+
 		void Disconnect(void)
 		{
 			for (auto &CurrentMapping : Mappings)
 				CurrentMapping.second.clear();
 		}
-		
+
 		void Connect(AType &A, BType &B)
 		{
 			assert(HasA(A));
 			assert(HasB(B));
-			auto BMappings = std::find_if(Mappings.begin(), Mappings.end(), 
+			auto BMappings = std::find_if(Mappings.begin(), Mappings.end(),
 				[&B](Pair const &Element) { return Element.first == &B; });
 			assert(std::find(BMappings->second.begin(), BMappings->second.end(), &A) == BMappings->second.end());
 			BMappings->second.push_back(&A);
 		}
-		
+
 		void Disconnect(AType &A, BType &B)
 		{
 			assert(HasA(A));
@@ -122,12 +122,12 @@ template <typename AType, typename BType> class ManyToOneMapper
 			assert(APosition != BMappings->second.end());
 			BMappings->second.erase(APosition);
 		}
-		
+
 		// Access - for range based for.
 		// Returns pairs of (To, vector of all connected froms)
 		decltype(Mappings.begin()) begin(void) { return Mappings.begin(); }
 		decltype(Mappings.end()) end(void) { return Mappings.end(); }
-		
+
 		Pair const &GetBMappings(BType const &Target)
 		{
 			assert(HasB(Target));
