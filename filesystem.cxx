@@ -2,8 +2,7 @@
 
 #include <cassert>
 #include <unistd.h>
-
-#include "exception.h"
+#include <cstring>
 
 #ifdef WINDOWS
 #else
@@ -11,6 +10,8 @@
 #include <sys/types.h>
 #include <dirent.h>
 #endif
+
+#include "exception.h"
 
 // My policy on case insensitivity on Windows: pretend it doesn't exist.  If two paths with different cases are compared, subsetted, whatever, they will be considered inequivalent.
 
@@ -424,9 +425,9 @@ DirectoryPath LocateTemporaryDirectory(void)
 		throw Error::System("Could not find the temporary file directory!");
 	return DirectoryPath(TemporaryPath);
 #else
-	char *TempPath = getenv("TMPDIR");
-	if (TempPath == nullptr) TempPath = getenv("P_tmpdir");
-	else TempPath = "/tmp";
+	char *TemporaryPath = getenv("TMPDIR");
+	if (TemporaryPath == nullptr) TemporaryPath = getenv("P_tmpdir");
+	else TemporaryPath = "/tmp";
 	return DirectoryPath(TemporaryPath);
 #endif
 }
@@ -436,7 +437,7 @@ FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output)
 	String Template = TempDirectory.AsAbsoluteString() + "/XXXXXX";
 	char *Filename = new char[Template.size() + 1];
 	memcpy(Filename, Template.c_str(), Template.size());
-	Filename[Template.size] = '\0';
+	Filename[Template.size()] = '\0';
 	int Result = mkstemp(Filename);
 	if (Result == -1)
 		throw Error::System("Failed to locate temporary file in " + TempDirectory.AsAbsoluteString() + "!");
