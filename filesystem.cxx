@@ -21,7 +21,7 @@ class PathStringIterator
 		PathStringIterator(String const &PathString) :
 			PathString(PathString), PreviousMarker(0), Marker(0)
 			{}
-		
+
 		bool FindNext(void)
 		{
 			if (Marker == String::npos) return false;
@@ -38,10 +38,10 @@ class PathStringIterator
 		}
 
 		String Read(void) const
-		{ 
+		{
 			assert(Marker > 0); // FindNext must be called first
 			if (Marker - 1 - PreviousMarker == 0) return String();
-			return PathString.substr(PreviousMarker, Marker - 1 - PreviousMarker); 
+			return PathString.substr(PreviousMarker, Marker - 1 - PreviousMarker);
 		}
 
 	private:
@@ -51,7 +51,7 @@ class PathStringIterator
 
 Path::Path(String const &Absolute)
 {
-	if (Absolute.empty()) 
+	if (Absolute.empty())
 		throw Error::Construction("Absolute paths must not be empty.");
 #ifdef WINDOWS
 	if ((Absolute.size() < 2) || (Absolute[1] != ':'))
@@ -96,7 +96,7 @@ String Path::AsAbsoluteString(void) const
 		Out << u8"/";
 #endif
 
-	for (auto Part : Parts) 
+	for (auto Part : Parts)
 	{
 #ifdef WINDOWS
 		if (First) First = false;
@@ -178,24 +178,33 @@ String FilePath::File(void) const { return Parts.back(); }
 
 DirectoryPath FilePath::Directory(void) const { return DirectoryPath(PartCollection(Parts.begin(), --Parts.end())); }
 
+bool FilePath::Exists(void) const
+{
+#ifdef WINDOWS
+        return GetFileAttributes(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str()) != 0xFFFFFFFF;
+#else
+        return access(AsAbsoluteString().c_str(), F_OK) == 0;
+#endif
+}
+
 FileInput &&FilePath::Read(void) const { return std::move(FileInput(AsNativeString(*this).c_str())); }
 
-FileOutput &&FilePath::Write(bool Append, bool Truncate) const 
-{ 
-	return std::move(FileOutput(AsNativeString(*this), 
-		FileOutput::out | (Append ? FileOutput::app : FileOutput::openmode(0)) | (Truncate ? FileOutput::trunc : FileOutput::openmode(0)))); 
+FileOutput &&FilePath::Write(bool Append, bool Truncate) const
+{
+	return std::move(FileOutput(AsNativeString(*this),
+		FileOutput::out | (Append ? FileOutput::app : FileOutput::openmode(0)) | (Truncate ? FileOutput::trunc : FileOutput::openmode(0))));
 }
 
 FilePath::operator FileInput&&(void) const { return Read(); }
 
 FilePath::operator FileOutput&&(void) const { return Write(); }
 
-bool FilePath::Delete(void) const 
+bool FilePath::Delete(void) const
 {
 #ifdef WINDOWS
 	return _wunlink(AsNativeString(AsAbsoluteString()).c_str()) == 0;
 #else
-	return unlink(AsAbsoluteString().c_str()) == 0; 
+	return unlink(AsAbsoluteString().c_str()) == 0;
 #endif
 }
 
@@ -266,7 +275,7 @@ static void ProcessDirectoryContents(String const &DirectoryName, std::function<
 #else
 	DIR *DirectoryResource = opendir(DirectoryName.c_str());
 	if (DirectoryResource == nullptr) return;
-	
+
 	dirent *ElementInfo;
 	while ((ElementInfo = readdir(DirectoryResource)) != nullptr)
 	{
@@ -396,7 +405,7 @@ FilePath LocateGlobalConfigFile(String const &Project, String const &Filename)
 	{ return DirectoryPath(GetGlobalConfigDirectory()).Enter(Project).Select(Filename); }
 
 DirectoryPath LocateDocumentDirectory(void)
-{ 
+{
 #ifdef WINDOWS
 	PWSTR PathResult;
 	HRESULT Result = SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &PathResult);

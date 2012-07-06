@@ -23,7 +23,7 @@ class Path
 		virtual String AsRelativeString(DirectoryPath const &From) const;
 		bool IsRoot(void) const;
 		unsigned int Depth(void) const;
-		
+
 	protected:
 		typedef std::list<String> PartCollection;
 
@@ -41,6 +41,8 @@ class FilePath : public Path
 		String File(void) const;
 		DirectoryPath Directory(void) const;
 
+		bool Exists(void) const;
+
 		FileInput &&Read(void) const;
 		FileOutput &&Write(bool Append = false, bool Truncate = false) const;
 		operator FileInput&&(void) const;
@@ -57,7 +59,7 @@ class DirectoryPath : public Path
 	public:
 		DirectoryPath(void);
 		DirectoryPath(String const &AbsolutePath);
-		
+
 		bool Create(bool EnsureAncestors) const;
 
 		DirectoryPath &Exit(void);
