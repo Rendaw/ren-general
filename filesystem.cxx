@@ -435,10 +435,10 @@ DirectoryPath LocateTemporaryDirectory(void)
 FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output)
 {
 	String Template = TempDirectory.AsAbsoluteString() + "/XXXXXX";
-	char *Filename = new char[Template.size() + 1];
-	memcpy(Filename, Template.c_str(), Template.size());
+	std::vector<char> Filename(Template.size() + 1);
+	std::copy(Template.begin(), Template.end(), Filename.begin());
 	Filename[Template.size()] = '\0';
-	int Result = mkstemp(Filename);
+	int Result = mkstemp(&Filename[0]);
 	if (Result == -1)
 		throw Error::System("Failed to locate temporary file in " + TempDirectory.AsAbsoluteString() + "!");
 	close(Result);
