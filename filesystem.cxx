@@ -425,9 +425,9 @@ DirectoryPath LocateTemporaryDirectory(void)
 		throw Error::System("Could not find the temporary file directory!");
 	return DirectoryPath(TemporaryPath);
 #else
-	char *TemporaryPath = getenv("TMPDIR");
+	char const *TemporaryPath = getenv("TMPDIR");
 	if (TemporaryPath == nullptr) TemporaryPath = getenv("P_tmpdir");
-	else TemporaryPath = "/tmp";
+	if (TemporaryPath == nullptr) TemporaryPath = "/tmp";
 	return DirectoryPath(TemporaryPath);
 #endif
 }
@@ -443,6 +443,6 @@ FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output)
 		throw Error::System("Failed to locate temporary file in " + TempDirectory.AsAbsoluteString() + "!");
 	close(Result);
 	Output.open(&Filename[0], FileOutput::trunc);
-	return FilePath(Filename);
+	return FilePath(&Filename[0]);
 }
 
