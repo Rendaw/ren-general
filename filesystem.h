@@ -37,6 +37,7 @@ class FilePath : public Path
 {
 	public:
 		FilePath(String const &AbsolutePath);
+		static FilePath Qualify(String const &RawPath);
 
 		String File(void) const;
 		DirectoryPath Directory(void) const;
@@ -59,6 +60,7 @@ class DirectoryPath : public Path
 	public:
 		DirectoryPath(void);
 		DirectoryPath(String const &AbsolutePath);
+		static DirectoryPath Qualify(String const &RawPath);
 
 		bool Create(bool EnsureAncestors) const;
 
@@ -84,7 +86,7 @@ DirectoryPath LocateDocumentDirectory(void);
 DirectoryPath LocateDocumentDirectory(String const &Project);
 DirectoryPath LocateTemporaryDirectory(void);
 
-FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output);
+FilePath CreateTemporaryFile(DirectoryPath const &TempDirectory, FileOutput &Output);
 
 #endif
 

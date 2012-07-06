@@ -15,6 +15,18 @@
 
 // My policy on case insensitivity on Windows: pretend it doesn't exist.  If two paths with different cases are compared, subsetted, whatever, they will be considered inequivalent.
 
+static bool IsAbsolute(String const &RawPath)
+{
+#ifdef WINDOWS
+	if ((RawPath.size() < 2) || (RawPath[1] != ':'))
+		return false;
+#else
+	if (RawPath[0] != '/')
+		return false;
+#endif
+	return true;
+}
+
 class PathStringIterator
 {
 	public:
@@ -53,14 +65,10 @@ Path::Path(String const &Absolute)
 {
 	if (Absolute.empty())
 		throw Error::Construction("Absolute paths must not be empty.");
-#ifdef WINDOWS
-	if ((Absolute.size() < 2) || (Absolute[1] != ':'))
-		throw Error::Construction("Windows root identifiers must begin with a drive specification.");
-#else
-	if (Absolute[0] != '/')
-		throw Error::Construction("Root identifiers msut begin with a forward slash.");
-#endif
 
+	if (!IsAbsolute(Absolute))
+		throw Error::Construction("Base paths must be constructed with absolute paths.");
+	
 	PathStringIterator AbsoluteIterator(Absolute);
 
 	while (AbsoluteIterator.FindNext())
@@ -173,6 +181,13 @@ Path::PartCollection Path::FindCommonRoot(PartCollection const &OtherParts, Part
 }
 
 FilePath::FilePath(String const &Absolute) : Path(Absolute) {}
+		
+FilePath FilePath::Qualify(String const &RawPath)
+{
+	if (IsAbsolute(RawPath))
+		return FilePath(RawPath);
+	return FilePath(LocateWorkingDirectory().AsAbsoluteString() + "/" + RawPath);
+}
 
 String FilePath::File(void) const { return Parts.back(); }
 
@@ -212,6 +227,13 @@ FilePath::FilePath(Path::PartCollection const &Parts, String const &Filename) : 
 	{ this->Parts.push_back(Filename); }
 
 DirectoryPath::DirectoryPath(void) : Path(Path::PartCollection()) {}
+
+DirectoryPath DirectoryPath::Qualify(String const &RawPath)
+{
+	if (IsAbsolute(RawPath))
+		return DirectoryPath(RawPath);
+	return DirectoryPath(LocateWorkingDirectory().AsAbsoluteString() + "/" + RawPath);
+}
 
 DirectoryPath::DirectoryPath(String const &Absolute) : Path(Absolute) {}
 
@@ -441,7 +463,7 @@ DirectoryPath LocateTemporaryDirectory(void)
 #endif
 }
 
-FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output)
+FilePath CreateTemporaryFile(DirectoryPath const &TempDirectory, FileOutput &Output)
 {
 	String Template = TempDirectory.AsAbsoluteString() + "/XXXXXX";
 	std::vector<char> Filename(Template.size() + 1);
