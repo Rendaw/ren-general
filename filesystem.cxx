@@ -442,7 +442,7 @@ FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output)
 	if (Result == -1)
 		throw Error::System("Failed to locate temporary file in " + TempDirectory.AsAbsoluteString() + "!");
 	close(Result);
-	Output.open(Filename, FileOutput::trunc);
+	Output.open(&Filename[0], FileOutput::trunc);
 	return FilePath(Filename);
 }
 
