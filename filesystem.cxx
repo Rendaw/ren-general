@@ -415,3 +415,33 @@ DirectoryPath LocateDocumentDirectory(void)
 DirectoryPath LocateDocumentDirectory(String const &Project)
 	{ return LocateDocumentDirectory().Enter(Project); }
 
+DirectoryPath LocateTemporaryDirectory(void)
+{
+#ifdef WINDOWS
+	TCHAR TemporaryPath[MAX_PATH];
+	int Result = GetTempPath(MAX_PATH, TemporaryPath);
+	if (Result == 0)
+		throw Error::System("Could not find the temporary file directory!");
+	return DirectoryPath(TemporaryPath);
+#else
+	char *TempPath = getenv("TMPDIR");
+	if (TempPath == nullptr) TempPath = getenv("P_tmpdir");
+	else TempPath = "/tmp";
+	return DirectoryPath(TemporaryPath);
+#endif
+}
+
+FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output)
+{
+	String Template = TempDirectory.AsAbsoluteString() + "/XXXXXX";
+	char *Filename = new char[Template.size() + 1];
+	memcpy(Filename, Template.c_str(), Template.size());
+	Filename[Template.size] = '\0';
+	int Result = mkstemp(Filename);
+	if (Result == -1)
+		throw Error::System("Failed to locate temporary file in " + TempDirectory.AsAbsoluteString() + "!");
+	close(Result);
+	Output.open(Filename, FileOutput::trunc);
+	return FilePath(Filename);
+}
+

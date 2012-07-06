@@ -80,6 +80,9 @@ FilePath LocateGlobalConfigFile(String const &Filename);
 FilePath LocateGlobalConfigFile(String const &Project, String const &Filename);
 DirectoryPath LocateDocumentDirectory(void);
 DirectoryPath LocateDocumentDirectory(String const &Project);
+DirectoryPath LocateTemporaryDirectory(void);
+
+FilePath CreateTemporaryFile(DirectoryPath &TempDirectory, FileOutput &Output);
 
 #endif
 
