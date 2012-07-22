@@ -196,13 +196,22 @@ DirectoryPath FilePath::Directory(void) const { return DirectoryPath(PartCollect
 bool FilePath::Exists(void) const
 {
 #ifdef WINDOWS
-        return GetFileAttributes(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str()) != 0xFFFFFFFF;
+        return GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str())) != 0xFFFFFFFF;
 #else
         return access(AsAbsoluteString().c_str(), F_OK) == 0;
 #endif
 }
 
-FileInput &&FilePath::Read(void) const { return std::move(FileInput(AsNativeString(*this).c_str())); }
+FileInput &&FilePath::Read(void) const 
+{
+#ifdef WINDOWS
+	FileInput Out;
+	Out.open(reinterpret_cast<wchar_t const *>(AsNativeString(*this).c_str()));
+	return std::move(Out);
+#else
+	return std::move(FileInput(AsNativeString(*this).c_str())); 
+#endif
+}
 
 FileOutput &&FilePath::Write(bool Append, bool Truncate) const
 {
