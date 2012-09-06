@@ -1,26 +1,5 @@
-#ifndef string_h
-#define string_h
-
-#include <string>
-#include <map>
-#include <sstream>
-#include <vector>
-#include <list>
-#include <fstream>
-#ifdef WINDOWS
-#include <windows.h>
-#include <cassert>
-#endif
-
-typedef unsigned char Byte;
-typedef std::vector<Byte> ByteBuffer;
-
-typedef std::string String; // Always UTF-8, use u8"" to specify literals
-#ifdef WINDOWS
-typedef std::u16string NativeString;
-#else
-typedef std::string NativeString;
-#endif
+#ifndef INPUTOUTPUT_H
+#define INPUTOUTPUT_H
 
 class OutputStream
 {
@@ -47,7 +26,6 @@ class OutputStream
 		virtual ~OutputStream(void);
 		virtual OutputStream &operator <<(FlushToken const &Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(RawToken const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(char const &Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(bool const &Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(int const &Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(long int const &Data) throw(Error::System &) = 0;
@@ -80,7 +58,6 @@ class StandardStreamTag : public OutputStream, public InputStream
 	public:
 		OutputStream &operator <<(FlushToken const &Data) throw(Error::System &);
 		OutputStream &operator <<(RawToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(char const &Data) throw(Error::System &);
 		OutputStream &operator <<(bool const &Data) throw(Error::System &);
 		OutputStream &operator <<(int const &Data) throw(Error::System &);
 		OutputStream &operator <<(long int const &Data) throw(Error::System &);
@@ -92,6 +69,9 @@ class StandardStreamTag : public OutputStream, public InputStream
 		OutputStream &operator <<(HexToken const &Data) throw(Error::System &);
 		InputStream &operator >>(RawToken &Data) throw(Error::System &);
 		InputStream &operator >>(String &Data) throw(Error::System &); // Reads a line
+	private:
+		void CheckOutput(void) throw(Error::System &);
+		void CheckInput(void) throw(Error::System &);
 } StandardStream;
 
 class StandardErrorStreamTag : public OutputStream
@@ -99,7 +79,6 @@ class StandardErrorStreamTag : public OutputStream
 	public:
 		OutputStream &operator <<(FlushToken const &Data) throw(Error::System &);
 		OutputStream &operator <<(RawToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(char const &Data) throw(Error::System &);
 		OutputStream &operator <<(bool const &Data) throw(Error::System &);
 		OutputStream &operator <<(int const &Data) throw(Error::System &);
 		OutputStream &operator <<(long int const &Data) throw(Error::System &);
@@ -109,6 +88,8 @@ class StandardErrorStreamTag : public OutputStream
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
 		OutputStream &operator <<(HexToken const &Data) throw(Error::System &);
+	private:
+		void CheckOutput(void) throw(Error::System &);
 } StandardErrorStream;
 
 class FileOutput : public OutputStream
@@ -172,32 +153,5 @@ class MemoryStream : public OutputStream, public InputStream
 		InputStream &operator >>(RawToken &Data) throw(Error::System &);
 		InputStream &operator >>(String &Data) throw(Error::System &); // Reads a line
 };
-
-typedef std::stringstream StringStream;
-
-#ifdef WINDOWS
-inline NativeString AsNativeString(String const &Input)
-{
-	static_assert(sizeof(wchar_t) == sizeof(char16_t), "Assumption that all Windows systems use 16-bit wide characters failed!");
-	const int Length = MultiByteToWideChar(CP_UTF8, 0, Input.c_str(), Input.length(), nullptr, 0);
-	assert(Length > 0);
-	std::vector<char16_t> ConversionBuffer;
-	ConversionBuffer.resize(Length);
-	MultiByteToWideChar(CP_UTF8, 0, Input.c_str(), Input.length(), (LPWSTR)&ConversionBuffer[0], Length);
-	return NativeString(&ConversionBuffer[0], Length);
-}
-#else
-inline String AsNativeString(String const &Input)
-	{ return Input; }
-#endif
-
-template <typename Base> String AsString(const Base &Convertee)
-{
-	StringStream Out;
-	Out << Convertee;
-	return Out.str();
-}
-
-template <> String AsString<NativeString>(NativeString const &Convertee);
 
 #endif
