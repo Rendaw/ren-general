@@ -7,7 +7,7 @@
 
 AnnalsBase::AnnalsBase(FilePath const &FileOutputLocation) :
 	FileLevel(rlDefault), ConsoleLevel(rlWarnings),
-	DefaultLocation(FileOutputLocation), FileOutputInstance(FileOutputLocation.AsAbsoluteString()), // TODO Use move constructor when libstdc++ supports it
+	DefaultLocation(FileOutputLocation), FileOutputInstance(FileOutputLocation.Write(true, true)),
 	ExtraLedger(nullptr)
 	{}
 
@@ -22,9 +22,7 @@ void AnnalsBase::DefaultSettings(void)
 {
 	FileLevel = rlDefault;
 	ConsoleLevel = rlWarnings;
-	//FileOutputInstance = DefaultLocation.Write(true); // TODO Use move assignment when libstdc++ supports it
-	FileOutputInstance.close();
-	FileOutputInstance.open(DefaultLocation.AsAbsoluteString(), FileOutput::app);
+	FileOutputInstance = DefaultLocation.Write(true);
 }
 
 void AnnalsBase::SetFileOutput(bool On, int MinimumLevel)
@@ -35,9 +33,7 @@ void AnnalsBase::SetFileOutput(bool On, int MinimumLevel)
 
 void AnnalsBase::SetFileOutputLocation(FilePath const &Location)
 { 
-	//FileOutputInstance = Location.Write(true, true); // TODO Use move assignment when libstdc++ supports it
-	FileOutputInstance.close();
-	FileOutputInstance.open(DefaultLocation.AsAbsoluteString(), FileOutput::app | FileOutput::trunc);
+	FileOutputInstance = Location.Write(true, true);
 }
 
 void AnnalsBase::SetConsoleOutput(bool On, int MinimumLevel)
@@ -58,7 +54,7 @@ void AnnalsBase::Log(int Level, const String &Message, String Extra)
 	//String Timestamp = asctime(localtime(&GlobalTime));
 	//Timestamp = Timestamp.erase(Timestamp.find("\n"));
 
-	StringStream Rendered;
+	MemoryStream Rendered;
 	//Rendered << Timestamp << ", ";
 
 	if (Level == rlFatalErrors) Rendered << "Fatal Error ";
@@ -75,8 +71,8 @@ void AnnalsBase::Log(int Level, const String &Message, String Extra)
 		Rendered << "\t" << Extra << "\n";
 	}
 
-	if (Level >= FileLevel) FileOutputInstance << Rendered.str() << std::flush;
-	if (Level >= ConsoleLevel) std::cout << Rendered.str() << std::flush;
+	if (Level >= FileLevel) FileOutputInstance << Rendered << OutputStream::Flush;
+	if (Level >= ConsoleLevel) StandardStream << Rendered << OutputStream::Flush;
 }
 
 // Convenience functions

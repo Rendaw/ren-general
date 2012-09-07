@@ -1,6 +1,8 @@
 #ifndef INPUTOUTPUT_H
 #define INPUTOUTPUT_H
 
+#include "exception.h"
+
 class OutputStream
 {
 	public:
@@ -56,8 +58,8 @@ class InputStream
 class StandardStreamTag : public OutputStream, public InputStream
 {
 	public:
-		OutputStream &operator <<(FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(RawToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
 		OutputStream &operator <<(bool const &Data) throw(Error::System &);
 		OutputStream &operator <<(int const &Data) throw(Error::System &);
 		OutputStream &operator <<(long int const &Data) throw(Error::System &);
@@ -66,19 +68,21 @@ class StandardStreamTag : public OutputStream, public InputStream
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(HexToken const &Data) throw(Error::System &);
-		InputStream &operator >>(RawToken &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
+		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
 		InputStream &operator >>(String &Data) throw(Error::System &); // Reads a line
 	private:
 		void CheckOutput(void) throw(Error::System &);
 		void CheckInput(void) throw(Error::System &);
-} StandardStream;
+};
+
+extern StandardStreamTag StandardStream;
 
 class StandardErrorStreamTag : public OutputStream
 {
 	public:
-		OutputStream &operator <<(FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(RawToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
 		OutputStream &operator <<(bool const &Data) throw(Error::System &);
 		OutputStream &operator <<(int const &Data) throw(Error::System &);
 		OutputStream &operator <<(long int const &Data) throw(Error::System &);
@@ -87,25 +91,26 @@ class StandardErrorStreamTag : public OutputStream
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(HexToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
 	private:
 		void CheckOutput(void) throw(Error::System &);
-} StandardErrorStream;
+};
+
+extern StandardErrorStreamTag StandardErrorStream;
 
 class FileOutput : public OutputStream
 {
 	public:
 		enum Modes
 		{
-			MustCreate = 1 << 0,
-			NeverCreate = 1 << 1,
-			Erase = 1 << 2,
-			Append = 1 << 3
+			Erase = 1 << 0,
+			Append = 1 << 1 
 		};
 		FileOutput(String const &Filename, unsigned int Mode = 0) throw(Error::System &);
 		FileOutput(FileOutput &&Other) throw();
-		OutputStream &operator <<(FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(RawToken const &Data) throw(Error::System &);
+		~FileOutput(void) throw();
+		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
 		OutputStream &operator <<(char const &Data) throw(Error::System &);
 		OutputStream &operator <<(bool const &Data) throw(Error::System &);
 		OutputStream &operator <<(int const &Data) throw(Error::System &);
@@ -115,31 +120,32 @@ class FileOutput : public OutputStream
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(HexToken const &Data) throw(Error::System &);
-		
+		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
+	private:
+		void CheckOutput(void) throw(Error::System &);
+		void CheckWriteResult(size_t Result) throw(Error::System &);
+
+		FILE *File;
 };
 
 class FileInput : public InputStream
 {
 	public:
-		FileInput(String const &Filename, unsigned int Mode = 0) throw(Error::System &);
+		FileInput(String const &Filename) throw(Error::System &);
 		FileInput(FileInput &&Other) throw();
-		InputStream &operator >>(RawToken &Data) throw(Error::System &);
+		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
 		InputStream &operator >>(String &Data) throw(Error::System &);
 	private:
-#ifdef WINDOWS
+		void CheckInput(void) throw(Error::System &);
+		void CheckReadResult(size_t Result) throw(Error::System &);
 		FILE *File;
-#else
-		std::ifstream File;
-#endif
 };
 
 class MemoryStream : public OutputStream, public InputStream
 {
 	public:
-		MemoryStream(void) throw();
-		OutputStream &operator <<(FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(RawToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
 		OutputStream &operator <<(char const &Data) throw(Error::System &);
 		OutputStream &operator <<(bool const &Data) throw(Error::System &);
 		OutputStream &operator <<(int const &Data) throw(Error::System &);
@@ -149,9 +155,12 @@ class MemoryStream : public OutputStream, public InputStream
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(HexToken const &Data) throw(Error::System &);
-		InputStream &operator >>(RawToken &Data) throw(Error::System &);
+		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
+		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
 		InputStream &operator >>(String &Data) throw(Error::System &); // Reads a line
+		operator String(void) const throw();
+	private:
+		std::stringstream Buffer;
 };
 
 #endif

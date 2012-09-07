@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "string.h"
+#include "inputoutput.h"
 
 class Path;
 class DirectoryPath;

@@ -1,5 +1,7 @@
 #include "region.h"
 
+#include "inputoutput.h"
+
 Region::Region(void) :
 	Start(), Size(1, 1)
 	{}
@@ -10,11 +12,11 @@ Region::Region(const FlatVector &Start, const FlatVector &Size) :
 
 String Region::AsString(void) const
 {
-	StringStream Out;
+	MemoryStream Out;
 	Out << "(" << Start[0] << ", " << Start[1] << " to " <<
 		(Start[0] + Size[0]) << ", " << (Start[1] + Size[1]) << " size " <<
 		Size[0] << "x" << Size[1] << ")";
-	return Out.str();
+	return Out;
 }
 
 bool Region::Valid(void) const

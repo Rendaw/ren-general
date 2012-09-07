@@ -1,20 +1,19 @@
 #include "inputoutput.h"
 
-#ifndef INPUTOUTPUT_H
-#define INPUTOUTPUT_H
+#include <iostream>
+#include <iomanip>
+#include <cassert>
+#include <cstring>
 
-OutputStream::FlushToken OutputStream::Flush(void)
-	{ return FlushToken(); }
-		
 OutputStream::~OutputStream(void) {}
 			
 InputStream::~InputStream(void) {}
 
-OutputStream &StandardStreamTag::operator <<(FlushToken const &Data) throw(Error::System &)
+OutputStream &StandardStreamTag::operator <<(OutputStream::FlushToken const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout << std::flush; return *this; }
 	
-OutputStream &StandardStreamTag::operator <<(RawToken const &Data) throw(Error::System &)
-	{ CheckOutput(); std::cout.write(reinterpret_cast<char const *>(Data.Data), Data.Size); return *this; }
+OutputStream &StandardStreamTag::operator <<(OutputStream::RawToken const &Data) throw(Error::System &)
+	{ CheckOutput(); std::cout.write(reinterpret_cast<char const *>(Data.Data), Data.Length); return *this; }
 	
 OutputStream &StandardStreamTag::operator <<(bool const &Data) throw(Error::System &)
 { 
@@ -105,44 +104,71 @@ OutputStream &StandardStreamTag::operator <<(String const &Data) throw(Error::Sy
 	return *this;
 }
 
-OutputStream &StandardStreamTag::operator <<(HexToken const &Data) throw(Error::System &)
+OutputStream &StandardStreamTag::operator <<(OutputStream::HexToken const &Data) throw(Error::System &)
 {
 	CheckOutput(); 
 #ifdef WINDOWS
-	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Size; CurrentPosition++)
+	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
 		fwprintf(stdout, L"%02x", *((unsigned char *)Data.Data + CurrentPosition));
 #else
 	std::cout << std::hex << std::setfill('0') << std::setw(2);
-	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Size; CurrentPosition++)
+	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
 		std::cout << *((unsigned char *)Data.Data + CurrentPosition); 
 	std::cout << std::dec;
 #endif
+	return *this;
 }
 
-InputStream &StandardStreamTag::operator >>(RawToken &Data) throw(Error::System &)
+InputStream &StandardStreamTag::operator >>(InputStream::RawToken &Data) throw(Error::System &)
 { 
 	CheckInput(); 
-	std::cin.read(reinterpret_cast<char *>(Data.Data), Data.Size); 
+	std::cin.read(reinterpret_cast<char *>(Data.Data), Data.Length); 
 	return *this; 
 }
 
 InputStream &StandardStreamTag::operator >>(String &Data) throw(Error::System &)
-	{ CheckInput(); std::getline(std::cin, Data); return *this; }
+{
+	CheckInput(); 
+#ifdef WINDOWS	
+	size_t BufferSize = 1024 * 4;
+	wchar_t *Buffer = new wchar_t[BufferSize];
+	while (BufferSize < 1024 * 1024 * 10) 
+	{
+		delete [] Buffer;
+		Buffer = new wchar_t[BufferSize];
+
+		wchar_t *Result = _getws_s(Buffer, BufferSize);
+		if (Result != nullptr)
+		{
+			Data = AsString(Result);
+			break;
+		}
+
+		if (errno != EINVAL) // EOF?
+			break;
+
+		BufferSize *= 2;
+	}
+	delete [] Buffer;
+#else
+	std::getline(std::cin, Data); 
+#endif
+	return *this; 
+}
 
 void StandardStreamTag::CheckOutput(void) throw(Error::System &)
 	{ if (!std::cout.good()) throw Error::System("Standard output has failed!"); }
 	
-void StandardStreamTag::CheckOutput(void) throw(Error::System &)
-	{ if (!std::coin.good()) throw Error::System("Standard input has failed!"); }
+void StandardStreamTag::CheckInput(void) throw(Error::System &)
+	{ if (!std::cin.good()) throw Error::System("Standard input has failed!"); }
 
-OutputStream &StandardErrorStreamTag::operator <<(FlushToken const &Data) throw(Error::System &)
+StandardStreamTag StandardStream;
+
+OutputStream &StandardErrorStreamTag::operator <<(OutputStream::FlushToken const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout << std::flush; return *this; }
 	
-OutputStream &StandardErrorStreamTag::operator <<(RawToken const &Data) throw(Error::System &)
-	{ CheckOutput(); std::cout.write(reinterpret_cast<char const *>(Data.Data), Data.Size); return *this; }
-	
-OutputStream &StandardErrorStreamTag::operator <<(char const &Data) throw(Error::System &)
-	{ CheckOutput(); std::cout << Data; return *this; }
+OutputStream &StandardErrorStreamTag::operator <<(OutputStream::RawToken const &Data) throw(Error::System &)
+	{ CheckOutput(); std::cout.write(reinterpret_cast<char const *>(Data.Data), Data.Length); return *this; }
 	
 OutputStream &StandardErrorStreamTag::operator <<(bool const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout << Data; return *this; }
@@ -167,74 +193,210 @@ OutputStream &StandardErrorStreamTag::operator <<(double const &Data) throw(Erro
 
 OutputStream &StandardErrorStreamTag::operator <<(String const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout << Data; return *this; }	
+
+OutputStream &StandardErrorStreamTag::operator <<(OutputStream::HexToken const &Data) throw(Error::System &)
+{
+	CheckOutput(); 
+#ifdef WINDOWS
+	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
+		fwprintf(stderr, L"%02x", *((unsigned char *)Data.Data + CurrentPosition));
+#else
+	std::cerr << std::hex << std::setfill('0') << std::setw(2);
+	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
+		std::cout << *((unsigned char *)Data.Data + CurrentPosition); 
+	std::cerr << std::dec;
+#endif
+	return *this;
+}
 	
 void StandardErrorStreamTag::CheckOutput(void) throw(Error::System &)
 	{ if (!std::cerr.good()) throw Error::System("Standard error output has failed!"); }
 
-class FileOutput : public OutputStream
-{
-	public:
-		enum Modes
-		{
-			Erase = 1 << 0,
-			Append = 1 << 1 
-		};
-FileOutput::FileOutput(String const &Filename, unsigned int Mode = 0) throw(Error::System &)
+StandardErrorStreamTag StandardErrorStream;
+
+FileOutput::FileOutput(String const &Filename, unsigned int Mode) throw(Error::System &) :
 #ifdef WINDOWS
 	File(_wfopen(reinterpret_cast<wchar_t const *>(AsNativeString(Filename).c_str()), 
 		Mode & Erase ?
-			Mode & Append ? L"wa" :
-			L"w" :
-		L"a"));
-{ 
-	if (File == nullptr) throw Error::System("Couldn't open file " + Filename);
-FileOutput::FileOutput(FileOutput &&Other) throw();
-OutputStream &FileOutput::operator <<(FlushToken const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(RawToken const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(char const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(bool const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(int const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(long int const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(long unsigned int const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(unsigned int const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(float const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(double const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(String const &Data) throw(Error::System &);
-OutputStream &FileOutput::operator <<(HexToken const &Data) throw(Error::System &);
-		
-};
-
-class FileInput : public InputStream
-{
-	public:
-		FileInput(String const &Filename, unsigned int Mode = 0) throw(Error::System &);
-		FileInput(FileInput &&Other) throw();
-		InputStream &operator >>(RawToken &Data) throw(Error::System &);
-		InputStream &operator >>(String &Data) throw(Error::System &);
-	private:
-#ifdef WINDOWS
-		FILE *File;
+			Mode & Append ? L"wab" :
+			L"wb" :
+		L"ab"))
 #else
-		std::ifstream File;
+	File(fopen(Filename.c_str(),
+		Mode & Erase ?
+			Mode & Append ? "wa" :
+			"w" :
+		"a"))
 #endif
-};
-
-class MemoryStream : public OutputStream, public InputStream
 {
-	public:
-		MemoryStream(void) throw();
-		OutputStream &operator <<(FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(RawToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(char const &Data) throw(Error::System &);
-		OutputStream &operator <<(bool const &Data) throw(Error::System &);
-		OutputStream &operator <<(int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(float const &Data) throw(Error::System &);
-		OutputStream &operator <<(double const &Data) throw(Error::System &);
-		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(HexToken const &Data) throw(Error::System &);
-		InputStream &operator >>(RawToken &Data) throw(Error::System &);
-		InputStream &operator >>(String &Data) throw(Error::System &); // Reads a line
-};
+	if (File == nullptr) throw Error::System("Couldn't open file " + Filename);
+}
+
+FileOutput::FileOutput(FileOutput &&Other) throw() : File(Other.File)
+	{ Other.File = nullptr; }
+
+FileOutput::~FileOutput(void) throw()
+	{ if (File != nullptr) fclose(File); }
+
+OutputStream &FileOutput::operator <<(OutputStream::FlushToken const &Data) throw(Error::System &)
+	{ CheckOutput(); fflush(File); return *this; }
+
+OutputStream &FileOutput::operator <<(OutputStream::RawToken const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fwrite(Data.Data, Data.Length, 1, File); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(char const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%c", Data); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(bool const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, Data ? "true" : "false"); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(int const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%d", Data); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(long int const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%ld", Data); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(long unsigned int const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%lu", Data); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(unsigned int const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%u", Data); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(float const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%f", Data); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(double const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%f", Data); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(String const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, "%s", Data.c_str()); CheckWriteResult(Result); return *this; }
+
+OutputStream &FileOutput::operator <<(OutputStream::HexToken const &Data) throw(Error::System &)
+{
+	size_t Result = 0;
+	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
+	{
+		size_t NewResult = fprintf(stdout, "%02x", *((unsigned char *)Data.Data + CurrentPosition));
+		if ((NewResult < 0) && (Result >= 0)) Result = NewResult;
+	}
+	CheckWriteResult(Result);
+	return *this;
+}
+
+void FileOutput::CheckOutput(void) throw(Error::System &)
+{
+	assert(File != nullptr);
+	if (feof(File)) throw Error::System("Received end-of-file while writing to file.");
+	if (ferror(File)) throw Error::System("File is in the error state.");
+}
+
+void FileOutput::CheckWriteResult(size_t Result) throw(Error::System &)
+{
+	if (Result <= 0)
+	{
+		if (ferror(File)) throw Error::System("Encountered error while writing; write failed.");
+		else if (feof(File)) throw Error::System("Received end-of-file while writing; write failed.");
+	}
+}
+
+FileInput::FileInput(String const &Filename) throw(Error::System &) :
+#ifdef WINDOWS
+	File(_wfopen(reinterpret_cast<wchar_t const *>(AsNativeString(Filename).c_str()), "rb"))
+#else
+	File(fopen(Filename.c_str(), "rb"))
+#endif
+	{ if (File == nullptr) throw Error::System("Couldn't open file " + Filename); }
+
+FileInput::FileInput(FileInput &&Other) throw() : File(Other.File)
+	{ Other.File = nullptr; }
+
+InputStream &FileInput::operator >>(InputStream::RawToken &Data) throw(Error::System &)
+{ 
+	size_t Result = fread(Data.Data, Data.Length, 1, File); 
+	if (Result <= 0)
+	{
+		if (ferror(File)) throw Error::System("Encountered error while writing; write failed.");
+		else if (feof(File)) throw Error::System("Received end-of-file while writing; write failed.");
+	}
+
+	return *this;
+}
+
+InputStream &FileInput::operator >>(String &Data) throw(Error::System &)
+{
+	size_t BufferSize = 1024 * 4;
+	char *Buffer = new char[BufferSize];
+	while (BufferSize < 1024 * 1024 * 10) 
+	{
+		delete [] Buffer;
+		Buffer = new char[BufferSize];
+
+		char *Result = fgets(Buffer, BufferSize, File);
+		if (Result != nullptr)
+		{ 
+			Buffer[strnlen(Buffer, BufferSize) - 1] = '\0';
+			Data = Buffer; 
+			break; 
+		}
+
+		if (errno != EINVAL) // EOF?
+			break;
+
+		BufferSize *= 2;
+	}
+	delete [] Buffer;
+
+	return *this;
+}
+
+OutputStream &MemoryStream::operator <<(OutputStream::FlushToken const &Data) throw(Error::System &)
+	{ Buffer << std::flush; return *this; }
+
+OutputStream &MemoryStream::operator <<(OutputStream::RawToken const &Data) throw(Error::System &)
+	{ Buffer.write((const char *)Data.Data, Data.Length); return *this; }
+
+OutputStream &MemoryStream::operator <<(char const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(bool const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(int const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(long int const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(long unsigned int const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(unsigned int const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(float const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(double const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(String const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }
+
+OutputStream &MemoryStream::operator <<(OutputStream::HexToken const &Data) throw(Error::System &)
+{
+	Buffer << std::hex << std::setfill('0') << std::setw(2);
+	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
+		std::cout << *((unsigned char *)Data.Data + CurrentPosition); 
+	Buffer << std::dec;
+	return *this;
+}
+
+InputStream & MemoryStream::operator >>(InputStream::RawToken &Data) throw(Error::System &)
+	{ Buffer.read((char *)Data.Data, Data.Length); return *this; }
+
+InputStream & MemoryStream::operator >>(String &Data) throw(Error::System &)
+	{ Buffer >> Data; return *this; }
+
+MemoryStream::operator String(void) const throw() 
+	{ return Buffer.str(); }
+
