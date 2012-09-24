@@ -192,7 +192,15 @@ OutputStream &StandardErrorStreamTag::operator <<(double const &Data) throw(Erro
 	{ CheckOutput(); std::cout << Data; return *this; }
 
 OutputStream &StandardErrorStreamTag::operator <<(String const &Data) throw(Error::System &)
-	{ CheckOutput(); std::cout << Data; return *this; }	
+{ 
+	CheckOutput(); 
+#ifdef WINDOWS
+	fwputs(AsNativeString(Data).c_str(), stderr);
+#else
+	std::cout << Data; 
+#endif
+	return *this; 
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(OutputStream::HexToken const &Data) throw(Error::System &)
 {
@@ -201,9 +209,9 @@ OutputStream &StandardErrorStreamTag::operator <<(OutputStream::HexToken const &
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
 		fwprintf(stderr, L"%02x", *((unsigned char *)Data.Data + CurrentPosition));
 #else
-	std::cerr << std::hex << std::setfill('0') << std::setw(2);
+	std::cerr << std::setfill('0') << std::setw(2);
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
-		std::cout << *((unsigned char *)Data.Data + CurrentPosition); 
+		std::cout << std::hex << *((unsigned char *)Data.Data + CurrentPosition); 
 	std::cerr << std::dec;
 #endif
 	return *this;
@@ -267,7 +275,7 @@ OutputStream &FileOutput::operator <<(float const &Data) throw(Error::System &)
 
 OutputStream &FileOutput::operator <<(double const &Data) throw(Error::System &)
 	{ CheckOutput(); size_t Result = fprintf(File, "%f", Data); CheckWriteResult(Result); return *this; }
-
+		
 OutputStream &FileOutput::operator <<(String const &Data) throw(Error::System &)
 	{ CheckOutput(); size_t Result = fprintf(File, "%s", Data.c_str()); CheckWriteResult(Result); return *this; }
 
@@ -353,7 +361,7 @@ OutputStream &MemoryStream::operator <<(OutputStream::FlushToken const &Data) th
 	{ Buffer << std::flush; return *this; }
 
 OutputStream &MemoryStream::operator <<(OutputStream::RawToken const &Data) throw(Error::System &)
-	{ Buffer.write((const char *)Data.Data, Data.Length); return *this; }
+	{ Buffer.write((char const *)Data.Data, Data.Length); return *this; }
 
 OutputStream &MemoryStream::operator <<(char const &Data) throw(Error::System &)
 	{ Buffer << Data; return *this; }
@@ -378,16 +386,15 @@ OutputStream &MemoryStream::operator <<(float const &Data) throw(Error::System &
 
 OutputStream &MemoryStream::operator <<(double const &Data) throw(Error::System &)
 	{ Buffer << Data; return *this; }
-
+		
 OutputStream &MemoryStream::operator <<(String const &Data) throw(Error::System &)
 	{ Buffer << Data; return *this; }
 
 OutputStream &MemoryStream::operator <<(OutputStream::HexToken const &Data) throw(Error::System &)
 {
-	Buffer << std::hex << std::setfill('0') << std::setw(2);
+	Buffer << std::setfill('0');
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
-		std::cout << *((unsigned char *)Data.Data + CurrentPosition); 
-	Buffer << std::dec;
+		Buffer << std::setw(2) << std::hex << static_cast<int>(((uint8_t *)Data.Data)[CurrentPosition]); 
 	return *this;
 }
 

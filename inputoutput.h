@@ -35,6 +35,7 @@ class OutputStream
 		virtual OutputStream &operator <<(unsigned int const &Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(float const &Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(double const &Data) throw(Error::System &) = 0;
+		virtual OutputStream &operator <<(char const *Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(String const &Data) throw(Error::System &) = 0;
 		virtual OutputStream &operator <<(HexToken const &Data) throw(Error::System &) = 0;
 };
@@ -67,6 +68,8 @@ class StandardStreamTag : public OutputStream, public InputStream
 		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
+		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+			{ *this << String(Data); return *this; }
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
 		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
 		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
@@ -90,6 +93,8 @@ class StandardErrorStreamTag : public OutputStream
 		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
+		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+			{ *this << String(Data); return *this; }
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
 		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
 	private:
@@ -119,6 +124,8 @@ class FileOutput : public OutputStream
 		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
+		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+			{ *this << String(Data); return *this; }
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
 		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
 	private:
@@ -149,11 +156,13 @@ class MemoryStream : public OutputStream, public InputStream
 		OutputStream &operator <<(char const &Data) throw(Error::System &);
 		OutputStream &operator <<(bool const &Data) throw(Error::System &);
 		OutputStream &operator <<(int const &Data) throw(Error::System &);
+		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
 		OutputStream &operator <<(long int const &Data) throw(Error::System &);
 		OutputStream &operator <<(long unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
 		OutputStream &operator <<(float const &Data) throw(Error::System &);
 		OutputStream &operator <<(double const &Data) throw(Error::System &);
+		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+			{ *this << String(Data); return *this; }
 		OutputStream &operator <<(String const &Data) throw(Error::System &);
 		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
 		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
