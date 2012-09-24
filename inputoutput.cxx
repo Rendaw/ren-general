@@ -111,10 +111,9 @@ OutputStream &StandardStreamTag::operator <<(OutputStream::HexToken const &Data)
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
 		fwprintf(stdout, L"%02x", *((unsigned char *)Data.Data + CurrentPosition));
 #else
-	std::cout << std::hex << std::setfill('0') << std::setw(2);
+	std::cout << std::setfill('0');
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
-		std::cout << *((unsigned char *)Data.Data + CurrentPosition); 
-	std::cout << std::dec;
+		std::cout << std::setw(2) << std::hex << static_cast<int>(((uint8_t *)Data.Data)[CurrentPosition]); 
 #endif
 	return *this;
 }
@@ -209,10 +208,9 @@ OutputStream &StandardErrorStreamTag::operator <<(OutputStream::HexToken const &
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
 		fwprintf(stderr, L"%02x", *((unsigned char *)Data.Data + CurrentPosition));
 #else
-	std::cerr << std::setfill('0') << std::setw(2);
+	std::cerr << std::setfill('0');
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
-		std::cout << std::hex << *((unsigned char *)Data.Data + CurrentPosition); 
-	std::cerr << std::dec;
+		std::cerr << std::setw(2) << std::hex << static_cast<int>(((uint8_t *)Data.Data)[CurrentPosition]); 
 #endif
 	return *this;
 }
