@@ -1,9 +1,24 @@
-include_rules
+tup.dorulesfile()
 
-SOURCES = ../annals.cxx ../time.cxx ../statemachine.cxx ../exception.cxx \
-	../range.cxx ../region.cxx ../color.cxx ../rotation.cxx ../vector.cxx \
-	../filesystem.cxx ../string.cxx
+Sources = 
+{
+	'../annals.cxx',
+	'../time.cxx',
+	'../statemachine.cxx',
+	'../exception.cxx',
+	'../range.cxx',
+	'../region.cxx',
+	'../color.cxx',
+	'../rotation.cxx',
+	'../vector.cxx',
+	'../filesystem.cxx',
+	'../string.cxx'
+}
 
-: foreach $(SOURCES) |> !object |> %B.o {objects}
-: {objects} |> !lightarchive |> ren-general.a
+Objects = {}
+for Index, Source in ipairs(Sources)
+do
+	table.insert(Objects, Rule.Object(Source))
+end
+Rule.LightArchive(Objects, 'ren-general.a')
 
