@@ -9,6 +9,7 @@
 
 #include "vector.h"
 #include "region.h"
+#include "inputoutput.h"
 
 #include <algorithm>
 #include <iostream>
@@ -105,9 +106,9 @@ template <typename Type> class Range
 
 		String AsString(void) const
 		{
-			StringStream Out;
+			MemoryStream Out;
 			Out << "[" << Min << ", " << Max << "]";
-			return Out.str();
+			return Out;
 		}
 
 		Type Min, Max;

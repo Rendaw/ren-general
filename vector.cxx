@@ -3,6 +3,8 @@
 #include <math.h>
 #include <cassert>
 
+#include "inputoutput.h"
+
 // Vector 3D =======================================================================================
 // Operators - base operations
 // MEMBER CONSTRUCTORS
@@ -39,9 +41,9 @@ Vector::Vector(const FlatVector &Operand, const float z)
 // TO STRINGGG
 String Vector::AsString(void) const
 {
-	StringStream Out;
+	MemoryStream Out;
 	Out << "(" << Data[0] << ", " << Data[1] << ", " << Data[2] << ")";
-	return Out.str();
+	return Out;
 }
 
 // MEMBER OPERATORS
@@ -216,9 +218,9 @@ FlatVector::FlatVector(const Vector &Operand)
 
 String FlatVector::AsString(void) const
 {
-	StringStream Out;
+	MemoryStream Out;
 	Out << "(" << Data[0] << ", " << Data[1] << ")";
-	return Out.str();
+	return Out;
 }
 
 FlatVector FlatVector::operator + (const FlatVector &Operand) const

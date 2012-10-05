@@ -7,46 +7,39 @@
 #include <vector>
 #include <list>
 #include <fstream>
-
-typedef std::string String; // Always UTF-8, use u8"" to specify literals
 #ifdef WINDOWS
-typedef std::u16string NativeString;
-#else
-typedef std::string NativeString;
+#include <windows.h>
+#include <cassert>
 #endif
 
-typedef std::istream InputStream;
-typedef std::ostream OutputStream;
+typedef unsigned char Byte;
+typedef std::vector<Byte> ByteBuffer;
 
-typedef std::ifstream FileInput;
-typedef std::ofstream FileOutput;
-typedef std::stringstream StringStream;
-
-/* TODO Support utf-8
-inline String Left(const String &Base, size_t Size)
-	{ return Base.substr(0, Size); }
-
-inline String Right(const String &Base, size_t Size)
-{
-	if (Base.size() <= Size) return Base;
-	return Base.substr(Base.size() - Size, Size);
-}
-*/
+typedef std::string String; // Always UTF-8, use u8"" to specify literals
 
 #ifdef WINDOWS
+typedef std::u16string NativeString;
+
 inline NativeString AsNativeString(String const &Input)
 {
-	std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> Converter;
-	return Converter.from_bytes(Input);
+	static_assert(sizeof(wchar_t) == sizeof(char16_t), "Assumption that all Windows systems use 16-bit wide characters failed!");
+	const int Length = MultiByteToWideChar(CP_UTF8, 0, Input.c_str(), Input.length(), nullptr, 0);
+	assert(Length > 0);
+	std::vector<char16_t> ConversionBuffer;
+	ConversionBuffer.resize(Length);
+	MultiByteToWideChar(CP_UTF8, 0, Input.c_str(), Input.length(), (LPWSTR)&ConversionBuffer[0], Length);
+	return NativeString(&ConversionBuffer[0], Length);
 }
 #else
+typedef std::string NativeString;
+
 inline String AsNativeString(String const &Input)
 	{ return Input; }
 #endif
 
 template <typename Base> String AsString(const Base &Convertee)
 {
-	StringStream Out;
+	std::stringstream Out;
 	Out << Convertee;
 	return Out.str();
 }

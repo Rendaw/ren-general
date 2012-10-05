@@ -1,6 +1,7 @@
 #include "color.h"
 
 #include "range.h"
+#include "inputoutput.h"
 
 // Calar //////////////////////////////////////////////////////////////////////
 Color::Color(void) : Red(1), Green(1), Blue(1), Alpha(1) {}
@@ -17,7 +18,7 @@ Color::Color(const Color &MixA, const Color &MixB, float Percent) :
 	Alpha(Mix(MixA.Alpha, MixB.Alpha, Percent)) {}
 
 String Color::AsString(void) const
-	{ StringStream Out; Out << "(C " << Red << ", " << Green << ", " << Blue << ", " << Alpha << ")"; return Out.str(); }
+	{ MemoryStream Out; Out << "(C " << Red << ", " << Green << ", " << Blue << ", " << Alpha << ")"; return Out; }
 
 Color Color::operator + (const Color &Operand) const
 	{ return Color(Red + Operand.Red, Green + Operand.Green, Blue + Operand.Blue, Alpha); }

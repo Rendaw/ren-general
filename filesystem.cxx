@@ -96,7 +96,7 @@ Path::~Path(void) {}
 
 String Path::AsAbsoluteString(void) const
 {
-	StringStream Out;
+	MemoryStream Out;
 #ifdef WINDOWS
 	bool First = true;
 #else
@@ -114,7 +114,7 @@ String Path::AsAbsoluteString(void) const
 		Out << u8"/" << Part;
 #endif
 	}
-	return Out.str();
+	return Out;
 }
 
 Path::operator char const *(void) const
@@ -125,7 +125,7 @@ Path::operator String(void) const
 
 String Path::AsRelativeString(DirectoryPath const &From) const
 {
-	StringStream Out;
+	MemoryStream Out;
 	bool First = true;
 	auto AppendPart = [&Out, &First](String const &Part)
 	{
@@ -141,7 +141,7 @@ String Path::AsRelativeString(DirectoryPath const &From) const
 	for (; HerePart != Parts.end(); HerePart++)
 		AppendPart(*HerePart);
 
-	return Out.str();
+	return Out;
 }
 
 bool Path::IsRoot(void) const
@@ -196,18 +196,27 @@ DirectoryPath FilePath::Directory(void) const { return DirectoryPath(PartCollect
 bool FilePath::Exists(void) const
 {
 #ifdef WINDOWS
-        return GetFileAttributes(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str()) != 0xFFFFFFFF;
+        return GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str())) != 0xFFFFFFFF;
 #else
         return access(AsAbsoluteString().c_str(), F_OK) == 0;
 #endif
 }
 
-FileInput &&FilePath::Read(void) const { return std::move(FileInput(AsNativeString(*this).c_str())); }
+FileInput &&FilePath::Read(void) const 
+{
+#ifdef WINDOWS
+	FileInput Out;
+	Out.open(reinterpret_cast<wchar_t const *>(AsNativeString(*this).c_str()));
+	return std::move(Out);
+#else
+	return std::move(FileInput(AsNativeString(*this).c_str())); 
+#endif
+}
 
 FileOutput &&FilePath::Write(bool Append, bool Truncate) const
 {
 	return std::move(FileOutput(AsNativeString(*this),
-		FileOutput::out | (Append ? FileOutput::app : FileOutput::openmode(0)) | (Truncate ? FileOutput::trunc : FileOutput::openmode(0))));
+		(Append ? FileOutput::Append : 0) | (Truncate ? FileOutput::Erase : 0)));
 }
 
 FilePath::operator FileInput&&(void) const { return Read(); }
@@ -473,7 +482,7 @@ FilePath CreateTemporaryFile(DirectoryPath const &TempDirectory, FileOutput &Out
 	if (Result == -1)
 		throw Error::System("Failed to locate temporary file in " + TempDirectory.AsAbsoluteString() + "!");
 	close(Result);
-	Output.open(&Filename[0], FileOutput::trunc);
+	Output = FileOutput(&Filename[0], FileOutput::Erase);
 	return FilePath(&Filename[0]);
 }
 

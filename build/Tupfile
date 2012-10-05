@@ -11,6 +11,7 @@ Sources =
 	'../color.cxx',
 	'../rotation.cxx',
 	'../vector.cxx',
+	'../inputoutput.cxx',
 	'../filesystem.cxx',
 	'../string.cxx'
 }
