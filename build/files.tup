@@ -1,0 +1,22 @@
+RenGeneralSources = 
+{
+	'../annals.cxx',
+	'../time.cxx',
+	'../statemachine.cxx',
+	'../exception.cxx',
+	'../range.cxx',
+	'../region.cxx',
+	'../color.cxx',
+	'../rotation.cxx',
+	'../vector.cxx',
+	'../inputoutput.cxx',
+	'../filesystem.cxx',
+	'../string.cxx'
+}
+
+RenGeneralObjects = {}
+for Index, Source in ipairs(RenGeneralSources)
+do
+	table.insert(RenGeneralObjects, NormalizeSlashes(tup.getcwd()) .. '/' .. StripPath(Source) .. '.o')
+end
+
