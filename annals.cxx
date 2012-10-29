@@ -71,8 +71,8 @@ void AnnalsBase::Log(int Level, const String &Message, String Extra)
 		Rendered << "\t" << Extra << "\n";
 	}
 
-	if (Level >= FileLevel) FileOutputInstance << Rendered << OutputStream::Flush;
-	if (Level >= ConsoleLevel) StandardStream << Rendered << OutputStream::Flush;
+	if (Level >= FileLevel) FileOutputInstance << (String)Rendered << OutputStream::Flush();
+	if (Level >= ConsoleLevel) StandardStream << (String)Rendered << OutputStream::Flush();
 }
 
 // Convenience functions

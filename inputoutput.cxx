@@ -5,9 +5,37 @@
 #include <cassert>
 #include <cstring>
 
+#ifdef WINDOWS
+#include <wchar.h>
+#include <string.h>
+#endif
+
+#include "filesystem.h"
+
 OutputStream::~OutputStream(void) {}
+		
+OutputStream &OutputStream::operator <<(Path const &Data) throw(Error::System &)
+	{ *this << Data.AsAbsoluteString(); return *this; }
 			
 InputStream::~InputStream(void) {}
+
+InputStream &InputStream::operator >>(int &Data) throw(Error::System &)
+{
+	String Temp;
+	*this >> Temp;
+	std::stringstream Convert(Temp);
+	Convert >> Data;
+	return *this;
+}
+
+InputStream &InputStream::operator >>(unsigned int &Data) throw(Error::System &)
+{
+	String Temp;
+	*this >> Temp;
+	std::stringstream Convert(Temp);
+	Convert >> Data;
+	return *this;
+}
 
 OutputStream &StandardStreamTag::operator <<(OutputStream::FlushToken const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout << std::flush; return *this; }
@@ -15,7 +43,7 @@ OutputStream &StandardStreamTag::operator <<(OutputStream::FlushToken const &Dat
 OutputStream &StandardStreamTag::operator <<(OutputStream::RawToken const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout.write(reinterpret_cast<char const *>(Data.Data), Data.Length); return *this; }
 	
-OutputStream &StandardStreamTag::operator <<(bool const &Data) throw(Error::System &)
+/*OutputStream &StandardStreamTag::operator <<(bool const &Data) throw(Error::System &)
 { 
 	CheckOutput();
 #ifdef WINDOWS
@@ -24,7 +52,7 @@ OutputStream &StandardStreamTag::operator <<(bool const &Data) throw(Error::Syst
 	std::cout << Data; 
 #endif
 	return *this;
-}
+}*/
 
 OutputStream &StandardStreamTag::operator <<(int const &Data) throw(Error::System &)
 { 
@@ -129,26 +157,13 @@ InputStream &StandardStreamTag::operator >>(String &Data) throw(Error::System &)
 {
 	CheckInput(); 
 #ifdef WINDOWS	
-	size_t BufferSize = 1024 * 4;
-	wchar_t *Buffer = new wchar_t[BufferSize];
-	while (BufferSize < 1024 * 1024 * 10) 
+	std::vector<char16_t> Line;
+	for (wchar_t Read; (Read = getwc(stdin)) != EOF;)
 	{
-		delete [] Buffer;
-		Buffer = new wchar_t[BufferSize];
-
-		wchar_t *Result = _getws_s(Buffer, BufferSize);
-		if (Result != nullptr)
-		{
-			Data = AsString(Result);
-			break;
-		}
-
-		if (errno != EINVAL) // EOF?
-			break;
-
-		BufferSize *= 2;
+		if (Read == L'\n') break;
+		Line.push_back(Read);
 	}
-	delete [] Buffer;
+	Data = AsString(NativeString(&Line[0], Line.size()));
 #else
 	std::getline(std::cin, Data); 
 #endif
@@ -169,8 +184,8 @@ OutputStream &StandardErrorStreamTag::operator <<(OutputStream::FlushToken const
 OutputStream &StandardErrorStreamTag::operator <<(OutputStream::RawToken const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout.write(reinterpret_cast<char const *>(Data.Data), Data.Length); return *this; }
 	
-OutputStream &StandardErrorStreamTag::operator <<(bool const &Data) throw(Error::System &)
-	{ CheckOutput(); std::cout << Data; return *this; }
+/*OutputStream &StandardErrorStreamTag::operator <<(bool const &Data) throw(Error::System &)
+	{ CheckOutput(); std::cout << Data; return *this; }*/
 
 OutputStream &StandardErrorStreamTag::operator <<(int const &Data) throw(Error::System &)
 	{ CheckOutput(); std::cout << Data; return *this; }
@@ -194,7 +209,7 @@ OutputStream &StandardErrorStreamTag::operator <<(String const &Data) throw(Erro
 { 
 	CheckOutput(); 
 #ifdef WINDOWS
-	fwputs(AsNativeString(Data).c_str(), stderr);
+	fputws(reinterpret_cast<wchar_t const *>(AsNativeString(Data).c_str()), stderr);
 #else
 	std::cout << Data; 
 #endif
@@ -241,6 +256,9 @@ FileOutput::FileOutput(String const &Filename, unsigned int Mode) throw(Error::S
 FileOutput::FileOutput(FileOutput &&Other) throw() : File(Other.File)
 	{ Other.File = nullptr; }
 
+FileOutput &FileOutput::operator =(FileOutput &&Other) throw()
+	{ File = Other.File; Other.File = nullptr; return *this; }
+
 FileOutput::~FileOutput(void) throw()
 	{ if (File != nullptr) fclose(File); }
 
@@ -253,8 +271,8 @@ OutputStream &FileOutput::operator <<(OutputStream::RawToken const &Data) throw(
 OutputStream &FileOutput::operator <<(char const &Data) throw(Error::System &)
 	{ CheckOutput(); size_t Result = fprintf(File, "%c", Data); CheckWriteResult(Result); return *this; }
 
-OutputStream &FileOutput::operator <<(bool const &Data) throw(Error::System &)
-	{ CheckOutput(); size_t Result = fprintf(File, Data ? "true" : "false"); CheckWriteResult(Result); return *this; }
+/*OutputStream &FileOutput::operator <<(bool const &Data) throw(Error::System &)
+	{ CheckOutput(); size_t Result = fprintf(File, Data ? "true" : "false"); CheckWriteResult(Result); return *this; }*/
 
 OutputStream &FileOutput::operator <<(int const &Data) throw(Error::System &)
 	{ CheckOutput(); size_t Result = fprintf(File, "%d", Data); CheckWriteResult(Result); return *this; }
@@ -307,7 +325,7 @@ void FileOutput::CheckWriteResult(size_t Result) throw(Error::System &)
 
 FileInput::FileInput(String const &Filename) throw(Error::System &) :
 #ifdef WINDOWS
-	File(_wfopen(reinterpret_cast<wchar_t const *>(AsNativeString(Filename).c_str()), "rb"))
+	File(_wfopen(reinterpret_cast<wchar_t const *>(AsNativeString(Filename).c_str()), L"rb"))
 #else
 	File(fopen(Filename.c_str(), "rb"))
 #endif
@@ -315,6 +333,9 @@ FileInput::FileInput(String const &Filename) throw(Error::System &) :
 
 FileInput::FileInput(FileInput &&Other) throw() : File(Other.File)
 	{ Other.File = nullptr; }
+
+FileInput &FileInput::operator =(FileInput &&Other) throw()
+	{ File = Other.File; Other.File = nullptr; return *this; }
 
 InputStream &FileInput::operator >>(InputStream::RawToken &Data) throw(Error::System &)
 { 
@@ -340,7 +361,10 @@ InputStream &FileInput::operator >>(String &Data) throw(Error::System &)
 		char *Result = fgets(Buffer, BufferSize, File);
 		if (Result != nullptr)
 		{ 
-			Buffer[strnlen(Buffer, BufferSize) - 1] = '\0';
+			for (unsigned int BufferIndex = 1; BufferIndex < BufferSize; BufferIndex++)
+				if (Buffer[BufferIndex] == '\0')
+					Buffer[BufferIndex - 1] = '\0';
+			Buffer[BufferSize - 1] = '\0';
 			Data = Buffer; 
 			break; 
 		}
@@ -354,6 +378,10 @@ InputStream &FileInput::operator >>(String &Data) throw(Error::System &)
 
 	return *this;
 }
+		
+MemoryStream::MemoryStream(void) {}
+
+MemoryStream::MemoryStream(String const &InitialData) : Buffer(InitialData) {}
 
 OutputStream &MemoryStream::operator <<(OutputStream::FlushToken const &Data) throw(Error::System &)
 	{ Buffer << std::flush; return *this; }
@@ -364,8 +392,8 @@ OutputStream &MemoryStream::operator <<(OutputStream::RawToken const &Data) thro
 OutputStream &MemoryStream::operator <<(char const &Data) throw(Error::System &)
 	{ Buffer << Data; return *this; }
 
-OutputStream &MemoryStream::operator <<(bool const &Data) throw(Error::System &)
-	{ Buffer << Data; return *this; }
+/*OutputStream &MemoryStream::operator <<(bool const &Data) throw(Error::System &)
+	{ Buffer << Data; return *this; }*/
 
 OutputStream &MemoryStream::operator <<(int const &Data) throw(Error::System &)
 	{ Buffer << Data; return *this; }

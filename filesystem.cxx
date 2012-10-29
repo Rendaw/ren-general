@@ -5,6 +5,9 @@
 #include <cstring>
 
 #ifdef WINDOWS
+#include <wchar.h>
+#include <direct.h>
+#include <shlobj.h>
 #else
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -202,31 +205,20 @@ bool FilePath::Exists(void) const
 #endif
 }
 
-FileInput &&FilePath::Read(void) const 
-{
-#ifdef WINDOWS
-	FileInput Out;
-	Out.open(reinterpret_cast<wchar_t const *>(AsNativeString(*this).c_str()));
-	return std::move(Out);
-#else
-	return std::move(FileInput(AsNativeString(*this).c_str())); 
-#endif
-}
+FileInput FilePath::Read(void) const 
+	{ return FileInput(AsAbsoluteString()); }
 
-FileOutput &&FilePath::Write(bool Append, bool Truncate) const
-{
-	return std::move(FileOutput(AsNativeString(*this),
-		(Append ? FileOutput::Append : 0) | (Truncate ? FileOutput::Erase : 0)));
-}
+FileOutput FilePath::Write(bool Append, bool Truncate) const
+	{ return FileOutput(AsAbsoluteString(), (Append ? FileOutput::Append : 0) | (Truncate ? FileOutput::Erase : 0)); }
 
-FilePath::operator FileInput&&(void) const { return Read(); }
+FilePath::operator FileInput(void) const { return Read(); }
 
-FilePath::operator FileOutput&&(void) const { return Write(); }
+FilePath::operator FileOutput(void) const { return Write(); }
 
 bool FilePath::Delete(void) const
 {
 #ifdef WINDOWS
-	return _wunlink(AsNativeString(AsAbsoluteString()).c_str()) == 0;
+	return _wunlink(reinterpret_cast<wchar_t const *>(AsNativeString(AsAbsoluteString()).c_str())) == 0;
 #else
 	return unlink(AsAbsoluteString().c_str()) == 0;
 #endif
@@ -251,7 +243,7 @@ bool DirectoryPath::Create(bool EnsureAncestors) const
 	auto MakeSingleDirectory = [](DirectoryPath const &Ancestor) -> bool
 	{
 #ifdef WINDOWS
-		int Result = _wmkdir(Ancestor);
+		int Result = _wmkdir(reinterpret_cast<wchar_t const *>(AsNativeString(Ancestor.AsAbsoluteString()).c_str()));
 #else
 		int Result = mkdir(Ancestor, 777);
 #endif
@@ -296,13 +288,13 @@ FilePath DirectoryPath::Select(String const &File) const
 static void ProcessDirectoryContents(String const &DirectoryName, std::function<void(String const &Element, bool IsFile)> Process)
 {
 #ifdef WINDOWS
-	WIN32_FIND_DATA ElementInfo;
+	WIN32_FIND_DATAW ElementInfo;
 	HANDLE DirectoryResource;
-	DirectoryResource = FindFirstFile(AsNativeString(DirectoryName).c_str(), &ElementInfo);
+	DirectoryResource = FindFirstFileW(reinterpret_cast<wchar_t const *>(AsNativeString(DirectoryName).c_str()), &ElementInfo);
 	if (DirectoryResource == INVALID_HANDLE_VALUE) return;
-	do Process(AsString(NativeString(ElementInfo.cFileName)), ElementInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
-		while (FindNextFile(DirectoryResource, &ElementInfo) != 0);
-	FindClose(DirectorResource);
+	do Process(AsString(NativeString(reinterpret_cast<char16_t const *>(ElementInfo.cFileName))), ElementInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+		while (FindNextFileW(DirectoryResource, &ElementInfo) != 0);
+	FindClose(DirectoryResource);
 #else
 	DIR *DirectoryResource = opendir(DirectoryName.c_str());
 	if (DirectoryResource == nullptr) return;
@@ -391,13 +383,11 @@ DirectoryPath LocateWorkingDirectory(void)
 static String GetUserConfigDirectory(void)
 {
 #ifdef WINDOWS
-	PWSTR PathResult;
-	HRESULT Result = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &PathResult);
+	wchar_t PathResult[MAX_PATH];
+	HRESULT Result = SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, 0, PathResult);
 	if (Result != S_OK)
 		throw Error::System("Couldn't find user config directory!  Received error " + AsString(Result));
-	String Out(PathResult);
-	CoTaskMemFree(PathResult);
-	return std::move(Out);
+	return AsString(NativeString(reinterpret_cast<char16_t const *>(PathResult)));
 #else
 	char *HomePath = getenv("XDG_CONFIG_HOME");
 	if (HomePath == nullptr)
@@ -411,13 +401,11 @@ static String GetUserConfigDirectory(void)
 static String GetGlobalConfigDirectory(void)
 {
 #ifdef WINDOWS
-	PWSTR PathResult;
-	HRESULT Result = SHGetKnownFolderPath(FOLDERID_ProgramData, 0, nullptr, &PathResult);
+	wchar_t PathResult[MAX_PATH];
+	HRESULT Result = SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, PathResult);
 	if (Result != S_OK)
 		throw Error::System("Couldn't find global config directory!  Received error " + AsString(Result));
-	String Out(PathResult);
-	CoTaskMemFree(PathResult);
-	return std::move(Out);
+	return AsString(NativeString(reinterpret_cast<char16_t const *>(PathResult)));
 #else
 	return String(u8"/etc");
 #endif
@@ -438,13 +426,11 @@ FilePath LocateGlobalConfigFile(String const &Project, String const &Filename)
 DirectoryPath LocateDocumentDirectory(void)
 {
 #ifdef WINDOWS
-	PWSTR PathResult;
-	HRESULT Result = SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &PathResult);
+	wchar_t PathResult[MAX_PATH];
+	HRESULT Result = SHGetFolderPathW(nullptr, CSIDL_PROFILE, nullptr, 0, PathResult);
 	if (Result != S_OK)
 		throw Error::System("Couldn't find user document directory!  Received error " + AsString(Result));
-	DirectoryPath Out(PathResult);
-	CoTaskMemFree(PathResult);
-	return std::move(Out);
+	return DirectoryPath(AsString(NativeString(reinterpret_cast<char16_t const *>(PathResult))));
 #else
 	char *HomePath = getenv("HOME");
 	if (HomePath == nullptr)
@@ -459,11 +445,11 @@ DirectoryPath LocateDocumentDirectory(String const &Project)
 DirectoryPath LocateTemporaryDirectory(void)
 {
 #ifdef WINDOWS
-	TCHAR TemporaryPath[MAX_PATH];
-	int Result = GetTempPath(MAX_PATH, TemporaryPath);
+	wchar_t TemporaryPath[MAX_PATH];
+	int Result = GetTempPathW(MAX_PATH, TemporaryPath);
 	if (Result == 0)
 		throw Error::System("Could not find the temporary file directory!");
-	return DirectoryPath(TemporaryPath);
+	return DirectoryPath(AsString(NativeString(reinterpret_cast<char16_t const *>(TemporaryPath))));
 #else
 	char const *TemporaryPath = getenv("TMPDIR");
 	if (TemporaryPath == nullptr) TemporaryPath = getenv("P_tmpdir");
@@ -472,8 +458,20 @@ DirectoryPath LocateTemporaryDirectory(void)
 #endif
 }
 
-FilePath CreateTemporaryFile(DirectoryPath const &TempDirectory, FileOutput &Output)
+std::tuple<FilePath, FileOutput> CreateTemporaryFile(DirectoryPath const &TempDirectory)
 {
+#ifdef WINDOWS
+	wchar_t TemporaryPath[MAX_PATH];
+	int Result = GetTempPathW(MAX_PATH, TemporaryPath);
+	if (Result == 0)
+		throw Error::System("Could not find the temporary file directory!");
+	wchar_t TemporaryFilename[MAX_PATH];
+	GetTempFileNameW(TemporaryPath, L"zar", 0, TemporaryFilename);
+	if (Result == 0)
+		throw Error::System("Could not create a temporary file!");
+	NativeString NativeTemporaryFilename(reinterpret_cast<char16_t const *>(TemporaryFilename));
+	return std::make_tuple(FilePath(AsString(NativeTemporaryFilename)), FileOutput(AsString(NativeTemporaryFilename), FileOutput::Erase));
+#else
 	String Template = TempDirectory.AsAbsoluteString() + "/XXXXXX";
 	std::vector<char> Filename(Template.size() + 1);
 	std::copy(Template.begin(), Template.end(), Filename.begin());
@@ -482,7 +480,7 @@ FilePath CreateTemporaryFile(DirectoryPath const &TempDirectory, FileOutput &Out
 	if (Result == -1)
 		throw Error::System("Failed to locate temporary file in " + TempDirectory.AsAbsoluteString() + "!");
 	close(Result);
-	Output = FileOutput(&Filename[0], FileOutput::Erase);
-	return FilePath(&Filename[0]);
+	return std::make_tuple(FilePath(&Filename[0]), FileOutput(&Filename[0], FileOutput::Erase));
+#endif
 }
 

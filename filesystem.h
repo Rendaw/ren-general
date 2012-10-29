@@ -45,10 +45,10 @@ class FilePath : public Path
 
 		bool Exists(void) const;
 
-		FileInput &&Read(void) const;
-		FileOutput &&Write(bool Append = false, bool Truncate = false) const;
-		operator FileInput&&(void) const;
-		operator FileOutput&&(void) const;
+		FileInput Read(void) const;
+		FileOutput Write(bool Append = false, bool Truncate = false) const;
+		operator FileInput(void) const;
+		operator FileOutput(void) const;
 
 		bool Delete(void) const;
 	private:
@@ -87,7 +87,7 @@ DirectoryPath LocateDocumentDirectory(void);
 DirectoryPath LocateDocumentDirectory(String const &Project);
 DirectoryPath LocateTemporaryDirectory(void);
 
-FilePath CreateTemporaryFile(DirectoryPath const &TempDirectory, FileOutput &Output);
+std::tuple<FilePath, FileOutput> CreateTemporaryFile(DirectoryPath const &TempDirectory);
 
 #endif
 

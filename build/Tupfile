@@ -1,25 +1,8 @@
 tup.dorulesfile()
+tup.dofile 'files.tup'
 
-Sources = 
-{
-	'../annals.cxx',
-	'../time.cxx',
-	'../statemachine.cxx',
-	'../exception.cxx',
-	'../range.cxx',
-	'../region.cxx',
-	'../color.cxx',
-	'../rotation.cxx',
-	'../vector.cxx',
-	'../inputoutput.cxx',
-	'../filesystem.cxx',
-	'../string.cxx'
-}
-
-Objects = {}
-for Index, Source in ipairs(Sources)
+for Index, Source in ipairs(RenGeneralSources)
 do
-	table.insert(Objects, Rule.Object(Source))
+	Rule.Object(Source)
 end
-Rule.LightArchive(Objects, 'ren-general.a')
 
