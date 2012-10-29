@@ -8,14 +8,15 @@ namespace Error
 
 class Construction
 {
-	/// Indicates that construction of an object could not complete for some reason.  This will only be thrown from constructors.  It is the only exception thrown from constructors.
+	/// Used if construction fails because of preventable or expected conditions.  This should always be caught and handled.
 	public:
 		Construction(String const &Explanation);
 		String Explanation;
 };
 
-class Validation
+class Input
 {
+	/// Indicates that external input was incorrect in some way.  This should be cleanly reported but otherwise doesn't need to be worked around.
 	public:
 		Validation(String const &Explanation);
 		String Explanation;
@@ -23,7 +24,7 @@ class Validation
 
 class System
 {
-	/// Indicates that some system operation failed or the system provided bad input (non user-provided input).
+	/// Indicates that some system operation failed or the system provided bad input (non user-provided input).  This should be cleanly reported, but otherwise doesn't need to be worked around.
 	public:
 		System(String const &Explanation);
 		String Explanation;
