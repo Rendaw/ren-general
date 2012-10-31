@@ -7,7 +7,7 @@ Construction::Construction(String const &Explanation) :
 	Explanation(Explanation)
 	{}
 
-Validation::Validation(String const &Explanation) :
+Input::Input(String const &Explanation) :
 	Explanation(Explanation)
 	{}
 

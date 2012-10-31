@@ -37,6 +37,10 @@ template <class Type> class Anchor
 template <class Type, template<class Retype, class = std::allocator<Retype> > class Container> class DeleterBase : public Container<Type *>
 {
 	public:
+		DeleterBase(void) {}
+
+		DeleterBase(std::initializer_list<Type *> &&Elements) : Container<Type *>(Elements) {}
+
 		~DeleterBase(void)
 		{
 			for (typename Container<Type *>::iterator CurrentElement = Container<Type *>::begin();
@@ -95,8 +99,8 @@ template <class Type, template<class Retype, class = std::allocator<Retype> > cl
 		}*/
 };
 
-template <class Type> class DeleterList : public DeleterBase<Type, std::list> {};
-template <class Type> class DeleterVector : public DeleterBase<Type, std::vector> {};
+template <class Type> using DeleterList = DeleterBase<Type, std::list>;
+template <class Type> using DeleterVector = DeleterBase<Type, std::vector>;
 
 template <class Type> class DeleterSet : public std::set<Type *, std::less<Type *>, std::allocator<Type> >
 {

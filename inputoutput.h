@@ -28,19 +28,20 @@ class OutputStream
 			{ return HexToken {&Data, sizeof(Data)}; }
 		
 		virtual ~OutputStream(void);
-		virtual OutputStream &operator <<(FlushToken const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(RawToken const &Data) throw(Error::System &) = 0;
-		//virtual OutputStream &operator <<(bool const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(int const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(long int const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(long unsigned int const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(unsigned int const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(float const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(double const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(char const *Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(String const &Data) throw(Error::System &) = 0;
-		virtual OutputStream &operator <<(Path const &Data) throw(Error::System &);
-		virtual OutputStream &operator <<(HexToken const &Data) throw(Error::System &) = 0;
+		virtual OutputStream &operator <<(FlushToken const &Data) = 0;
+		virtual OutputStream &operator <<(RawToken const &Data) = 0;
+		//virtual OutputStream &operator <<(bool const &Data) = 0;
+		virtual OutputStream &operator <<(int const &Data) = 0;
+		virtual OutputStream &operator <<(long int const &Data) = 0;
+		virtual OutputStream &operator <<(long unsigned int const &Data) = 0;
+		virtual OutputStream &operator <<(unsigned int const &Data) = 0;
+		virtual OutputStream &operator <<(float const &Data) = 0;
+		virtual OutputStream &operator <<(double const &Data) = 0;
+		virtual OutputStream &operator <<(char const *Data) = 0;
+		virtual OutputStream &operator <<(String const &Data) = 0;
+		virtual OutputStream &operator <<(Path const &Data);
+		virtual OutputStream &operator <<(HexToken const &Data) = 0;
+		virtual operator String(void) const;
 };
 
 class InputStream
@@ -55,10 +56,12 @@ class InputStream
 			{ return RawToken {&Data, sizeof(Data)}; }
 			
 		virtual ~InputStream(void);
-		virtual InputStream &operator >>(RawToken &Data) throw(Error::System &) = 0;
-		virtual InputStream &operator >>(int &Data) throw(Error::System &);
-		virtual InputStream &operator >>(unsigned int &Data) throw(Error::System &);
-		virtual InputStream &operator >>(String &Data) throw(Error::System &) = 0; // Reads a line
+
+		virtual InputStream &operator >>(RawToken &Data) = 0;
+		virtual InputStream &operator >>(int &Data);
+		virtual InputStream &operator >>(unsigned int &Data);
+		virtual InputStream &operator >>(String &Data) = 0; // Reads a line
+		virtual operator bool(void) const = 0;
 };
 
 class StandardStreamTag : public OutputStream, public InputStream
@@ -66,24 +69,26 @@ class StandardStreamTag : public OutputStream, public InputStream
 	public:
 		using OutputStream::operator <<;
 		using InputStream::operator >>;
-		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
-		//OutputStream &operator <<(bool const &Data) throw(Error::System &);
-		OutputStream &operator <<(int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(float const &Data) throw(Error::System &);
-		OutputStream &operator <<(double const &Data) throw(Error::System &);
-		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+
+		OutputStream &operator <<(OutputStream::FlushToken const &Data);
+		OutputStream &operator <<(OutputStream::RawToken const &Data);
+		//OutputStream &operator <<(bool const &Data);
+		OutputStream &operator <<(int const &Data);
+		OutputStream &operator <<(long int const &Data);
+		OutputStream &operator <<(long unsigned int const &Data);
+		OutputStream &operator <<(unsigned int const &Data);
+		OutputStream &operator <<(float const &Data);
+		OutputStream &operator <<(double const &Data);
+		inline OutputStream &operator <<(char const *Data)
 			{ *this << String(Data); return *this; }
-		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
-		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
-		InputStream &operator >>(String &Data) throw(Error::System &); // Reads a line
+		OutputStream &operator <<(String const &Data);
+		OutputStream &operator <<(OutputStream::HexToken const &Data);
+		InputStream &operator >>(InputStream::RawToken &Data);
+		InputStream &operator >>(String &Data); // Reads a line
+		operator bool(void) const;
 	private:
-		void CheckOutput(void) throw(Error::System &);
-		void CheckInput(void) throw(Error::System &);
+		void CheckOutput(void);
+		void CheckInput(void);
 };
 
 extern StandardStreamTag StandardStream;
@@ -92,21 +97,21 @@ class StandardErrorStreamTag : public OutputStream
 {
 	public:
 		using OutputStream::operator <<;
-		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
-		//OutputStream &operator <<(bool const &Data) throw(Error::System &);
-		OutputStream &operator <<(int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(float const &Data) throw(Error::System &);
-		OutputStream &operator <<(double const &Data) throw(Error::System &);
-		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+		OutputStream &operator <<(OutputStream::FlushToken const &Data);
+		OutputStream &operator <<(OutputStream::RawToken const &Data);
+		//OutputStream &operator <<(bool const &Data);
+		OutputStream &operator <<(int const &Data);
+		OutputStream &operator <<(long int const &Data);
+		OutputStream &operator <<(long unsigned int const &Data);
+		OutputStream &operator <<(unsigned int const &Data);
+		OutputStream &operator <<(float const &Data);
+		OutputStream &operator <<(double const &Data);
+		inline OutputStream &operator <<(char const *Data)
 			{ *this << String(Data); return *this; }
-		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(String const &Data);
+		OutputStream &operator <<(OutputStream::HexToken const &Data);
 	private:
-		void CheckOutput(void) throw(Error::System &);
+		void CheckOutput(void);
 };
 
 extern StandardErrorStreamTag StandardErrorStream;
@@ -121,27 +126,27 @@ class FileOutput : public OutputStream
 			Erase = 1 << 0,
 			Append = 1 << 1 
 		};
-		FileOutput(String const &Filename, unsigned int Mode = 0) throw(Error::System &);
-		FileOutput(FileOutput &&Other) throw();
-		FileOutput &operator =(FileOutput &&Other) throw();
-		~FileOutput(void) throw();
-		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(char const &Data) throw(Error::System &);
-		//OutputStream &operator <<(bool const &Data) throw(Error::System &);
-		OutputStream &operator <<(int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(float const &Data) throw(Error::System &);
-		OutputStream &operator <<(double const &Data) throw(Error::System &);
-		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+		FileOutput(String const &Filename, unsigned int Mode = 0);
+		FileOutput(FileOutput &&Other);
+		FileOutput &operator =(FileOutput &&Other);
+		~FileOutput(void);
+		OutputStream &operator <<(OutputStream::FlushToken const &Data);
+		OutputStream &operator <<(OutputStream::RawToken const &Data);
+		OutputStream &operator <<(char const &Data);
+		//OutputStream &operator <<(bool const &Data);
+		OutputStream &operator <<(int const &Data);
+		OutputStream &operator <<(long int const &Data);
+		OutputStream &operator <<(long unsigned int const &Data);
+		OutputStream &operator <<(unsigned int const &Data);
+		OutputStream &operator <<(float const &Data);
+		OutputStream &operator <<(double const &Data);
+		inline OutputStream &operator <<(char const *Data)
 			{ *this << String(Data); return *this; }
-		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
+		OutputStream &operator <<(String const &Data);
+		OutputStream &operator <<(OutputStream::HexToken const &Data);
 	private:
-		void CheckOutput(void) throw(Error::System &);
-		void CheckWriteResult(size_t Result) throw(Error::System &);
+		void CheckOutput(void);
+		void CheckWriteResult(size_t Result);
 
 		FILE *File;
 };
@@ -151,14 +156,15 @@ class FileInput : public InputStream
 	public:
 		using InputStream::operator >>;
 
-		FileInput(String const &Filename) throw(Error::System &);
-		FileInput(FileInput &&Other) throw();
-		FileInput &operator =(FileInput &&Other) throw();
-		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
-		InputStream &operator >>(String &Data) throw(Error::System &);
+		FileInput(String const &Filename);
+		FileInput(FileInput &&Other);
+		FileInput &operator =(FileInput &&Other);
+		InputStream &operator >>(InputStream::RawToken &Data);
+		InputStream &operator >>(String &Data);
+		operator bool(void) const;
 	private:
-		void CheckInput(void) throw(Error::System &);
-		void CheckReadResult(size_t Result) throw(Error::System &);
+		void CheckInput(void);
+		void CheckReadResult(size_t Result);
 		FILE *File;
 };
 
@@ -167,26 +173,27 @@ class MemoryStream : public OutputStream, public InputStream
 	public:
 		using OutputStream::operator <<;
 		using InputStream::operator >>;
-
+		
 		MemoryStream(void);
 		MemoryStream(String const &InitialData);
-		OutputStream &operator <<(OutputStream::FlushToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::RawToken const &Data) throw(Error::System &);
-		OutputStream &operator <<(char const &Data) throw(Error::System &);
-		//OutputStream &operator <<(bool const &Data) throw(Error::System &);
-		OutputStream &operator <<(int const &Data) throw(Error::System &);
-		OutputStream &operator <<(unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long int const &Data) throw(Error::System &);
-		OutputStream &operator <<(long unsigned int const &Data) throw(Error::System &);
-		OutputStream &operator <<(float const &Data) throw(Error::System &);
-		OutputStream &operator <<(double const &Data) throw(Error::System &);
-		inline OutputStream &operator <<(char const *Data) throw(Error::System &)
+		OutputStream &operator <<(OutputStream::FlushToken const &Data);
+		OutputStream &operator <<(OutputStream::RawToken const &Data);
+		OutputStream &operator <<(char const &Data);
+		//OutputStream &operator <<(bool const &Data);
+		OutputStream &operator <<(int const &Data);
+		OutputStream &operator <<(unsigned int const &Data);
+		OutputStream &operator <<(long int const &Data);
+		OutputStream &operator <<(long unsigned int const &Data);
+		OutputStream &operator <<(float const &Data);
+		OutputStream &operator <<(double const &Data);
+		inline OutputStream &operator <<(char const *Data)
 			{ *this << String(Data); return *this; }
-		OutputStream &operator <<(String const &Data) throw(Error::System &);
-		OutputStream &operator <<(OutputStream::HexToken const &Data) throw(Error::System &);
-		InputStream &operator >>(InputStream::RawToken &Data) throw(Error::System &);
-		InputStream &operator >>(String &Data) throw(Error::System &); // Reads a line
-		operator String(void) const throw();
+		OutputStream &operator <<(String const &Data);
+		OutputStream &operator <<(OutputStream::HexToken const &Data);
+		operator String(void) const;
+		InputStream &operator >>(InputStream::RawToken &Data);
+		InputStream &operator >>(String &Data); // Reads a line
+		operator bool(void) const;
 	private:
 		std::stringstream Buffer;
 };

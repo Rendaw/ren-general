@@ -18,7 +18,7 @@ class Input
 {
 	/// Indicates that external input was incorrect in some way.  This should be cleanly reported but otherwise doesn't need to be worked around.
 	public:
-		Validation(String const &Explanation);
+		Input(String const &Explanation);
 		String Explanation;
 };
 
