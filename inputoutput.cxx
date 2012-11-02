@@ -257,7 +257,7 @@ FileOutput::FileOutput(String const &Filename, unsigned int Mode) :
 	if (File == nullptr) throw Error::System("Couldn't open file " + Filename);
 }
 
-FileOutput::FileOutput(FileOutput &&Other)
+FileOutput::FileOutput(FileOutput &&Other) : File(Other.File)
 	{ Other.File = nullptr; }
 
 FileOutput &FileOutput::operator =(FileOutput &&Other)
@@ -367,7 +367,10 @@ InputStream &FileInput::operator >>(String &Data)
 		{ 
 			for (unsigned int BufferIndex = 1; BufferIndex < BufferSize; BufferIndex++)
 				if (Buffer[BufferIndex] == '\0')
+				{
 					Buffer[BufferIndex - 1] = '\0';
+					break;
+				}
 			Buffer[BufferSize - 1] = '\0';
 			Data = Buffer; 
 			break; 
