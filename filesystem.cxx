@@ -5,6 +5,7 @@
 #include <cstring>
 
 #ifdef WINDOWS
+#include <windows.h>
 #include <wchar.h>
 #include <direct.h>
 #include <shlobj.h>
@@ -119,9 +120,6 @@ String Path::AsAbsoluteString(void) const
 	}
 	return Out;
 }
-
-Path::operator char const *(void) const
-	{ return AsAbsoluteString().c_str(); }
 
 Path::operator String(void) const
 	{ return AsAbsoluteString(); }
@@ -245,7 +243,7 @@ bool DirectoryPath::Create(bool EnsureAncestors) const
 #ifdef WINDOWS
 		int Result = _wmkdir(reinterpret_cast<wchar_t const *>(AsNativeString(Ancestor.AsAbsoluteString()).c_str()));
 #else
-		int Result = mkdir(Ancestor, 777);
+		int Result = mkdir(((String)Ancestor).c_str(), 0777);
 #endif
 		if (Result == -1 && errno != EEXIST)
 			return false;
@@ -380,6 +378,17 @@ DirectoryPath LocateWorkingDirectory(void)
 	 return DirectoryPath(WorkingDirectoryBuffer);
 }
 
+void ChangeWorkingDirectory(DirectoryPath const &Target)
+{
+#ifdef WINDOWS
+	if (!SetCurrentDirectoryW(AsNativeString(Target).c_str()))
+		throw Error::System("Couldn't change working directory!");
+#else
+	if (chdir(Target.AsAbsoluteString().c_str()) == -1)
+		throw Error::System(String("Couldn't change working directory to \"") + Target.AsAbsoluteString() + "\": " + strerror(errno));
+#endif
+}
+
 static String GetUserConfigDirectory(void)
 {
 #ifdef WINDOWS
@@ -390,11 +399,14 @@ static String GetUserConfigDirectory(void)
 	return AsString(NativeString(reinterpret_cast<char16_t const *>(PathResult)));
 #else
 	char *HomePath = getenv("XDG_CONFIG_HOME");
-	if (HomePath == nullptr)
-		HomePath = getenv("HOME");
-	if (HomePath == nullptr)
-		throw Error::System("User's local config directory and home directory are undefined!");
-	return String(HomePath);
+	if (HomePath != nullptr)
+		return HomePath;
+	HomePath = getenv("HOME");
+	if (HomePath != nullptr)
+		return String(HomePath) + "/.config";
+
+	throw Error::System("User's local config directory and home directory are undefined!");
+	return String();
 #endif
 }
 

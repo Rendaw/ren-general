@@ -17,7 +17,6 @@ class Path
 		virtual ~Path(void);
 
 		virtual String AsAbsoluteString(void) const;
-		operator char const *(void) const;
 		operator String(void) const;
 		//operator NativeString(void) const;
 
@@ -79,6 +78,8 @@ class DirectoryPath : public Path
 };
 
 DirectoryPath LocateWorkingDirectory(void);
+void ChangeWorkingDirectory(DirectoryPath const &Target);
+
 FilePath LocateUserConfigFile(String const &Filename);
 FilePath LocateUserConfigFile(String const &Project, String const &Filename);
 FilePath LocateGlobalConfigFile(String const &Filename);

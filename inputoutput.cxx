@@ -183,31 +183,31 @@ void StandardStreamTag::CheckInput(void)
 StandardStreamTag StandardStream;
 
 OutputStream &StandardErrorStreamTag::operator <<(OutputStream::FlushToken const &Data)
-	{ CheckOutput(); std::cout << std::flush; return *this; }
+	{ CheckOutput(); std::cerr << std::flush; return *this; }
 	
 OutputStream &StandardErrorStreamTag::operator <<(OutputStream::RawToken const &Data)
-	{ CheckOutput(); std::cout.write(reinterpret_cast<char const *>(Data.Data), Data.Length); return *this; }
+	{ CheckOutput(); std::cerr.write(reinterpret_cast<char const *>(Data.Data), Data.Length); return *this; }
 	
 /*OutputStream &StandardErrorStreamTag::operator <<(bool const &Data)
-	{ CheckOutput(); std::cout << Data; return *this; }*/
+	{ CheckOutput(); std::cerr << Data; return *this; }*/
 
 OutputStream &StandardErrorStreamTag::operator <<(int const &Data)
-	{ CheckOutput(); std::cout << Data; return *this; }
+	{ CheckOutput(); std::cerr << Data; return *this; }
 
 OutputStream &StandardErrorStreamTag::operator <<(long int const &Data)
-	{ CheckOutput(); std::cout << Data; return *this; }
+	{ CheckOutput(); std::cerr << Data; return *this; }
 
 OutputStream &StandardErrorStreamTag::operator <<(long unsigned int const &Data)
-	{ CheckOutput(); std::cout << Data; return *this; }
+	{ CheckOutput(); std::cerr << Data; return *this; }
 
 OutputStream &StandardErrorStreamTag::operator <<(unsigned int const &Data)
-	{ CheckOutput(); std::cout << Data; return *this; }
+	{ CheckOutput(); std::cerr << Data; return *this; }
 
 OutputStream &StandardErrorStreamTag::operator <<(float const &Data)
-	{ CheckOutput(); std::cout << Data; return *this; }
+	{ CheckOutput(); std::cerr << Data; return *this; }
 
 OutputStream &StandardErrorStreamTag::operator <<(double const &Data)
-	{ CheckOutput(); std::cout << Data; return *this; }
+	{ CheckOutput(); std::cerr << Data; return *this; }
 
 OutputStream &StandardErrorStreamTag::operator <<(String const &Data)
 { 
@@ -215,7 +215,7 @@ OutputStream &StandardErrorStreamTag::operator <<(String const &Data)
 #ifdef WINDOWS
 	fputws(reinterpret_cast<wchar_t const *>(AsNativeString(Data).c_str()), stderr);
 #else
-	std::cout << Data; 
+	std::cerr << Data; 
 #endif
 	return *this; 
 }
