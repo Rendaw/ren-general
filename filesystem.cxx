@@ -197,9 +197,12 @@ DirectoryPath FilePath::Directory(void) const { return DirectoryPath(PartCollect
 bool FilePath::Exists(void) const
 {
 #ifdef WINDOWS
-        return GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str())) != 0xFFFFFFFF;
+        return !Set<DWORD>({0xFFFFFFFF, 0x10}).Contains(GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str())));
 #else
-        return access(AsAbsoluteString().c_str(), F_OK) == 0;
+	struct stat StatResultBuffer;
+	int Result = stat(AsAbsoluteString().c_str(), &StatResultBuffer);
+	if (Result != 0) return false;
+	return S_ISREG(StatResultBuffer.st_mode);
 #endif
 }
 
@@ -235,6 +238,18 @@ DirectoryPath DirectoryPath::Qualify(String const &RawPath)
 }
 
 DirectoryPath::DirectoryPath(String const &Absolute) : Path(Absolute) {}
+		
+bool DirectoryPath::Exists(void) const
+{
+#ifdef WINDOWS
+        return GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str())) & 0x10;
+#else
+	struct stat StatResultBuffer;
+	int Result = stat(AsAbsoluteString().c_str(), &StatResultBuffer);
+	if (Result != 0) return false;
+	return S_ISDIR(StatResultBuffer.st_mode);
+#endif
+}
 
 bool DirectoryPath::Create(bool EnsureAncestors) const
 {

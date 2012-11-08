@@ -26,6 +26,22 @@ class OutputStream
 		};  
 		template <typename DataType> static HexToken Hex(DataType const &Data) 
 			{ return HexToken {&Data, sizeof(Data)}; }
+
+		struct FloatToken
+		{
+			float Value;
+
+			int FractionalCount;
+			enum { Exact, Max } FractionalCountType;
+
+			FloatToken &FractionalDigits(unsigned int Digits)
+				{ FractionalCount = Digits; FractionalCountType = Exact; return *this; }
+
+			FloatToken &MaxFractionalDigits(unsigned int Digits)
+				{ FractionalCount = Digits; FractionalCountType = Max; return *this; }
+		};
+		static FloatToken Float(float const &Data)
+			{ return FloatToken {Data, -1, FloatToken::Exact}; }
 		
 		virtual ~OutputStream(void);
 		virtual OutputStream &operator <<(FlushToken const &Data) = 0;
@@ -36,6 +52,7 @@ class OutputStream
 		virtual OutputStream &operator <<(long unsigned int const &Data) = 0;
 		virtual OutputStream &operator <<(unsigned int const &Data) = 0;
 		virtual OutputStream &operator <<(float const &Data) = 0;
+		virtual OutputStream &operator <<(FloatToken const &Data);
 		virtual OutputStream &operator <<(double const &Data) = 0;
 		virtual OutputStream &operator <<(char const *Data) = 0;
 		virtual OutputStream &operator <<(String const &Data) = 0;
@@ -60,6 +77,7 @@ class InputStream
 		virtual InputStream &operator >>(RawToken &Data) = 0;
 		virtual InputStream &operator >>(int &Data);
 		virtual InputStream &operator >>(unsigned int &Data);
+		virtual InputStream &operator >>(float &Data);
 		virtual InputStream &operator >>(String &Data) = 0; // Reads a line
 		virtual operator bool(void) const = 0;
 };

@@ -61,6 +61,8 @@ class DirectoryPath : public Path
 		DirectoryPath(void);
 		DirectoryPath(String const &AbsolutePath);
 		static DirectoryPath Qualify(String const &RawPath);
+		
+		bool Exists(void) const;
 
 		bool Create(bool EnsureAncestors) const;
 

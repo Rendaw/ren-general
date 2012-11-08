@@ -14,6 +14,27 @@
 
 OutputStream::~OutputStream(void) {}
 		
+OutputStream &OutputStream::operator <<(FloatToken const &Data)
+{
+	std::stringstream Out;
+
+	if (Data.FractionalCount >= 0)
+	{
+		switch (Data.FractionalCountType)
+		{
+			case FloatToken::Exact:
+				Out.setf(std::ios::fixed);
+				break;
+			default: break;
+		}
+		Out.precision(Data.FractionalCount);
+	}
+
+	Out << Data.Value;
+	*this << Out.str();
+	return *this;
+}
+
 OutputStream &OutputStream::operator <<(Path const &Data)
 	{ *this << Data.AsAbsoluteString(); return *this; }
 		
@@ -31,6 +52,15 @@ InputStream &InputStream::operator >>(int &Data)
 }
 
 InputStream &InputStream::operator >>(unsigned int &Data)
+{
+	String Temp;
+	*this >> Temp;
+	std::stringstream Convert(Temp);
+	Convert >> Data;
+	return *this;
+}
+		
+InputStream &InputStream::operator >>(float &Data)
 {
 	String Temp;
 	*this >> Temp;
