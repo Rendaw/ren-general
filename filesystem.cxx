@@ -16,6 +16,7 @@
 #endif
 
 #include "exception.h"
+#include "arrangement.h"
 
 // My policy on case insensitivity on Windows: pretend it doesn't exist.  If two paths with different cases are compared, subsetted, whatever, they will be considered inequivalent.
 
@@ -396,7 +397,7 @@ DirectoryPath LocateWorkingDirectory(void)
 void ChangeWorkingDirectory(DirectoryPath const &Target)
 {
 #ifdef WINDOWS
-	if (!SetCurrentDirectoryW(AsNativeString(Target).c_str()))
+	if (!SetCurrentDirectoryW((wchar_t const *)AsNativeString(Target).c_str()))
 		throw Error::System("Couldn't change working directory!");
 #else
 	if (chdir(Target.AsAbsoluteString().c_str()) == -1)
