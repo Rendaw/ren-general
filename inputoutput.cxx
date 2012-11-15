@@ -69,7 +69,7 @@ InputStream &InputStream::operator >>(float &Data)
 	return *this;
 }
 
-OutputStream &StandardStreamTag::operator <<(OutputStream::FlushToken const &Data)
+OutputStream &StandardStreamTag::operator <<(OutputStream::FlushToken const &)
 	{ CheckOutput(); std::cout << std::flush; return *this; }
 	
 OutputStream &StandardStreamTag::operator <<(OutputStream::RawToken const &Data)
@@ -212,7 +212,7 @@ void StandardStreamTag::CheckInput(void)
 
 StandardStreamTag StandardStream;
 
-OutputStream &StandardErrorStreamTag::operator <<(OutputStream::FlushToken const &Data)
+OutputStream &StandardErrorStreamTag::operator <<(OutputStream::FlushToken const &)
 	{ CheckOutput(); std::cerr << std::flush; return *this; }
 	
 OutputStream &StandardErrorStreamTag::operator <<(OutputStream::RawToken const &Data)
@@ -296,7 +296,7 @@ FileOutput &FileOutput::operator =(FileOutput &&Other)
 FileOutput::~FileOutput(void)
 	{ if (File != nullptr) fclose(File); }
 
-OutputStream &FileOutput::operator <<(OutputStream::FlushToken const &Data)
+OutputStream &FileOutput::operator <<(OutputStream::FlushToken const &)
 	{ CheckOutput(); fflush(File); return *this; }
 
 OutputStream &FileOutput::operator <<(OutputStream::RawToken const &Data)
@@ -331,10 +331,10 @@ OutputStream &FileOutput::operator <<(String const &Data)
 
 OutputStream &FileOutput::operator <<(OutputStream::HexToken const &Data)
 {
-	size_t Result = 0;
+	int Result = 0;
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
 	{
-		size_t NewResult = fprintf(stdout, "%02x", *((unsigned char *)Data.Data + CurrentPosition));
+		int NewResult = fprintf(stdout, "%02x", *((unsigned char *)Data.Data + CurrentPosition));
 		if ((NewResult < 0) && (Result >= 0)) Result = NewResult;
 	}
 	CheckWriteResult(Result);
@@ -422,7 +422,7 @@ MemoryStream::MemoryStream(void) {}
 
 MemoryStream::MemoryStream(String const &InitialData) : Buffer(InitialData) {}
 
-OutputStream &MemoryStream::operator <<(OutputStream::FlushToken const &Data)
+OutputStream &MemoryStream::operator <<(OutputStream::FlushToken const &)
 	{ Buffer << std::flush; return *this; }
 
 OutputStream &MemoryStream::operator <<(OutputStream::RawToken const &Data)

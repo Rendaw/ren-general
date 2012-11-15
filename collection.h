@@ -42,7 +42,7 @@ template <typename CoreType> class IndexIterable
 			public:					
 				Iterator(CoreType &Base) : Base(Base), Position(0) {}
 				void operator++(void) { Position++; }
-				bool operator!=(Iterator const &Other) { return Position < Base.GetCount(); }
+				bool operator!=(Iterator const &) { return Position < Base.GetCount(); }
 				ValueType &operator*(void) { return Base.GetValue(Position); }
 		};
 			
