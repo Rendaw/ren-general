@@ -119,6 +119,11 @@ String Path::AsAbsoluteString(void) const
 		Out << u8"/" << Part;
 #endif
 	}
+
+#ifdef WINDOWS
+	if (Parts.size() == 1)
+		Out << u8"/";
+#endif
 	return Out;
 }
 
@@ -138,6 +143,10 @@ String Path::AsRelativeString(DirectoryPath const &From) const
 
 	PartCollection::const_iterator HerePart = Parts.begin(), FromPart = From.Parts.begin();
 	FindCommonRoot(From.Parts, HerePart, FromPart);
+#ifdef WINDOWS
+	if (FromPart == From.Parts.begin())
+		return AsAbsoluteString();
+#endif
 	for (; FromPart != From.Parts.end(); FromPart++)
 		AppendPart(u8"..");
 	for (; HerePart != Parts.end(); HerePart++)
@@ -194,11 +203,14 @@ FilePath FilePath::Qualify(String const &RawPath)
 String FilePath::File(void) const { return Parts.back(); }
 
 DirectoryPath FilePath::Directory(void) const { return DirectoryPath(PartCollection(Parts.begin(), --Parts.end())); }
-
+#include <iostream>
+#include <iomanip>
 bool FilePath::Exists(void) const
 {
 #ifdef WINDOWS
-        return !Set<DWORD>({0xFFFFFFFF, 0x10}).Contains(GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str())));
+	//DWORD Attributes = GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString("\\\\?\\" + AsAbsoluteString()).c_str())); // Doesn't work for some reason -- mixed slashes?
+	DWORD Attributes = GetFileAttributesW(reinterpret_cast<wchar_t const *>(AsNativeString(AsAbsoluteString()).c_str()));
+        return !Set<DWORD>({0xFFFFFFFF, 0x10}).Contains(Attributes);
 #else
 	struct stat StatResultBuffer;
 	int Result = stat(AsAbsoluteString().c_str(), &StatResultBuffer);
@@ -304,10 +316,15 @@ static void ProcessDirectoryContents(String const &DirectoryName, std::function<
 #ifdef WINDOWS
 	WIN32_FIND_DATAW ElementInfo;
 	HANDLE DirectoryResource;
-	DirectoryResource = FindFirstFileW(reinterpret_cast<wchar_t const *>(AsNativeString(DirectoryName).c_str()), &ElementInfo);
+	DirectoryResource = FindFirstFileW(reinterpret_cast<wchar_t const *>(AsNativeString(DirectoryName + "/*").c_str()), &ElementInfo);
 	if (DirectoryResource == INVALID_HANDLE_VALUE) return;
-	do Process(AsString(NativeString(reinterpret_cast<char16_t const *>(ElementInfo.cFileName))), ElementInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
-		while (FindNextFileW(DirectoryResource, &ElementInfo) != 0);
+	do
+	{
+		String FindName = AsString(NativeString(reinterpret_cast<char16_t const *>(ElementInfo.cFileName)));
+		if (Set<String>({".", ".."}).Contains(FindName)) continue;
+
+		Process(FindName, ElementInfo.dwFileAttributes & ~FILE_ATTRIBUTE_DIRECTORY);
+	} while (FindNextFileW(DirectoryResource, &ElementInfo) != 0);
 	FindClose(DirectoryResource);
 #else
 	DIR *DirectoryResource = opendir(DirectoryName.c_str());
@@ -397,7 +414,7 @@ DirectoryPath LocateWorkingDirectory(void)
 void ChangeWorkingDirectory(DirectoryPath const &Target)
 {
 #ifdef WINDOWS
-	if (!SetCurrentDirectoryW((wchar_t const *)AsNativeString(Target).c_str()))
+	if (!SetCurrentDirectoryW(reinterpret_cast<wchar_t const *>(AsNativeString(Target).c_str())))
 		throw Error::System("Couldn't change working directory!");
 #else
 	if (chdir(Target.AsAbsoluteString().c_str()) == -1)
@@ -489,12 +506,9 @@ DirectoryPath LocateTemporaryDirectory(void)
 std::tuple<FilePath, FileOutput> CreateTemporaryFile(DirectoryPath const &TempDirectory)
 {
 #ifdef WINDOWS
-	wchar_t TemporaryPath[MAX_PATH];
-	int Result = GetTempPathW(MAX_PATH, TemporaryPath);
-	if (Result == 0)
-		throw Error::System("Could not find the temporary file directory!");
+	NativeString TempDirectoryString = AsNativeString(TempDirectory);
 	wchar_t TemporaryFilename[MAX_PATH];
-	GetTempFileNameW(TemporaryPath, L"zar", 0, TemporaryFilename);
+	int Result = GetTempFileNameW(reinterpret_cast<wchar_t const *>(TempDirectoryString.c_str()), L"zar", 0, TemporaryFilename);
 	if (Result == 0)
 		throw Error::System("Could not create a temporary file!");
 	NativeString NativeTemporaryFilename(reinterpret_cast<char16_t const *>(TemporaryFilename));
