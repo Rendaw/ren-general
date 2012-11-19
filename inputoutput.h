@@ -88,6 +88,8 @@ class StandardStreamTag : public OutputStream, public InputStream
 		using OutputStream::operator <<;
 		using InputStream::operator >>;
 
+		StandardStreamTag(void);
+
 		OutputStream &operator <<(OutputStream::FlushToken const &Data);
 		OutputStream &operator <<(OutputStream::RawToken const &Data);
 		//OutputStream &operator <<(bool const &Data);
@@ -107,6 +109,13 @@ class StandardStreamTag : public OutputStream, public InputStream
 	private:
 		void CheckOutput(void);
 		void CheckInput(void);
+
+#ifdef WINDOWS
+		bool OutputIsConsole;
+		HANDLE OutputHandle;
+		bool InputIsConsole;
+		HANDLE InputHandle;
+#endif
 };
 
 extern StandardStreamTag StandardStream;
@@ -114,6 +123,8 @@ extern StandardStreamTag StandardStream;
 class StandardErrorStreamTag : public OutputStream
 {
 	public:
+		StandardErrorStreamTag(void);
+
 		using OutputStream::operator <<;
 		OutputStream &operator <<(OutputStream::FlushToken const &Data);
 		OutputStream &operator <<(OutputStream::RawToken const &Data);
@@ -130,6 +141,10 @@ class StandardErrorStreamTag : public OutputStream
 		OutputStream &operator <<(OutputStream::HexToken const &Data);
 	private:
 		void CheckOutput(void);
+#ifdef WINDOWS
+		bool OutputIsConsole;
+		HANDLE OutputHandle;
+#endif
 };
 
 extern StandardErrorStreamTag StandardErrorStream;

@@ -16,7 +16,7 @@ class Path
 		Path(Path const &Other);
 		virtual ~Path(void);
 
-		virtual String AsAbsoluteString(void) const;
+		virtual String AsAbsoluteString(char const *Separator = u8"/") const;
 		operator String(void) const;
 		//operator NativeString(void) const;
 

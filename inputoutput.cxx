@@ -69,6 +69,33 @@ InputStream &InputStream::operator >>(float &Data)
 	return *this;
 }
 
+#ifdef WINDOWS
+template <typename WriteType> void WriteSimpleData(bool const &IsConsole, HANDLE OutputHandle, WriteType const &Data)
+{
+	std::stringstream StringConversion;
+	StringConversion << Data;
+	DWORD Unused;
+	if (IsConsole)
+	{
+		NativeString EncodingConversion(AsNativeString(StringConversion.str()));
+		WriteConsoleW(OutputHandle, EncodingConversion.c_str(), EncodingConversion.length(), &Unused, nullptr);
+	}
+	else
+		WriteFile(OutputHandle, StringConversion.str().c_str(), StringConversion.str().length(), &Unused, nullptr);
+}
+#endif
+
+StandardStreamTag::StandardStreamTag(void) 
+{
+#ifdef WINDOWS
+	DWORD Unused;
+	OutputIsConsole = GetConsoleMode(stdout, &Unused);
+	OutputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	InputIsConsole = GetConsoleMode(stdin, &Unused);
+	InputHandle = GetStdHandle(STD_INPUT_HANDLE);
+#endif
+}
+
 OutputStream &StandardStreamTag::operator <<(OutputStream::FlushToken const &)
 	{ CheckOutput(); std::cout << std::flush; return *this; }
 	
@@ -90,7 +117,7 @@ OutputStream &StandardStreamTag::operator <<(int const &Data)
 { 
 	CheckOutput();
 #ifdef WINDOWS
-	fwprintf(stdout, L"%d", Data);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cout << Data; 
 #endif
@@ -101,7 +128,7 @@ OutputStream &StandardStreamTag::operator <<(long int const &Data)
 { 
 	CheckOutput();
 #ifdef WINDOWS
-	fwprintf(stdout, L"%ld", Data);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cout << Data; 
 #endif
@@ -112,7 +139,7 @@ OutputStream &StandardStreamTag::operator <<(unsigned int const &Data)
 { 
 	CheckOutput();
 #ifdef WINDOWS
-	fwprintf(stdout, L"%u", Data);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cout << Data; 
 #endif
@@ -123,7 +150,7 @@ OutputStream &StandardStreamTag::operator <<(long unsigned int const &Data)
 { 
 	CheckOutput();
 #ifdef WINDOWS
-	fwprintf(stdout, L"%lu", Data);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cout << Data; 
 #endif
@@ -134,7 +161,7 @@ OutputStream &StandardStreamTag::operator <<(float const &Data)
 { 
 	CheckOutput();
 #ifdef WINDOWS
-	fwprintf(stdout, L"%f", Data);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cout << Data; 
 #endif
@@ -145,7 +172,7 @@ OutputStream &StandardStreamTag::operator <<(double const &Data)
 { 
 	CheckOutput();
 #ifdef WINDOWS
-	fwprintf(stdout, L"%f", Data);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cout << Data; 
 #endif
@@ -156,8 +183,7 @@ OutputStream &StandardStreamTag::operator <<(String const &Data)
 { 
 	CheckOutput();
 #ifdef WINDOWS
-	NativeString NativeData(AsNativeString(Data));
-	fwprintf(stdout, L"%s", NativeData.c_str());
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cout << Data; 
 #endif
@@ -168,8 +194,11 @@ OutputStream &StandardStreamTag::operator <<(OutputStream::HexToken const &Data)
 {
 	CheckOutput(); 
 #ifdef WINDOWS
+	std::stringstream Conversion;
+	Conversion << std::hex << std::setfill('0') << std::setw(2);
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
-		fwprintf(stdout, L"%02x", *((unsigned char *)Data.Data + CurrentPosition));
+		Conversion << *((unsigned char *)Data.Data + CurrentPosition);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Conversion.str());
 #else
 	std::cout << std::setfill('0');
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
@@ -189,13 +218,19 @@ InputStream &StandardStreamTag::operator >>(String &Data)
 {
 	CheckInput(); 
 #ifdef WINDOWS	
-	std::vector<char16_t> Line;
-	for (wchar_t Read; (Read = getwc(stdin)) != EOF;)
+	if (InputIsConsole)
 	{
-		if (Read == L'\n') break;
-		Line.push_back(Read);
+		DWORD ReadCount;
+		wchar_t Read[2]; // Windows bug I read about
+		std::vector<char16_t> Line;
+		while (ReadConsoleW(InputHandle, Read, 1, &ReadCount, nullptr) && (ReadCount == 1))
+		{
+			if (Read[0] == L'\n') break;
+			Line.push_back(Read[0]);
+		}
+		Data = AsString(NativeString(&Line[0], Line.size()));
 	}
-	Data = AsString(NativeString(&Line[0], Line.size()));
+	else std::getline(std::cin, Data); 
 #else
 	std::getline(std::cin, Data); 
 #endif
@@ -211,6 +246,13 @@ void StandardStreamTag::CheckInput(void)
 	{ if (!std::cin.good()) throw Error::System("Standard input has failed!"); }
 
 StandardStreamTag StandardStream;
+		
+StandardErrorStreamTag::StandardErrorStreamTag(void)
+{
+	DWORD Unused;
+	OutputIsConsole = !GetConsoleMode(stdout, &Unused);
+	OutputHandle = GetStdHandle(STD_ERROR_HANDLE);
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(OutputStream::FlushToken const &)
 	{ CheckOutput(); std::cerr << std::flush; return *this; }
@@ -222,28 +264,76 @@ OutputStream &StandardErrorStreamTag::operator <<(OutputStream::RawToken const &
 	{ CheckOutput(); std::cerr << Data; return *this; }*/
 
 OutputStream &StandardErrorStreamTag::operator <<(int const &Data)
-	{ CheckOutput(); std::cerr << Data; return *this; }
+{ 
+	CheckOutput(); 
+#ifdef WINDOWS
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
+#else
+	std::cerr << Data; 
+#endif
+	return *this; 
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(long int const &Data)
-	{ CheckOutput(); std::cerr << Data; return *this; }
+{ 
+	CheckOutput(); 
+#ifdef WINDOWS
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
+#else
+	std::cerr << Data; 
+#endif
+	return *this; 
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(long unsigned int const &Data)
-	{ CheckOutput(); std::cerr << Data; return *this; }
+{ 
+	CheckOutput(); 
+#ifdef WINDOWS
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
+#else
+	std::cerr << Data; 
+#endif
+	return *this; 
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(unsigned int const &Data)
-	{ CheckOutput(); std::cerr << Data; return *this; }
+{ 
+	CheckOutput(); 
+#ifdef WINDOWS
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
+#else
+	std::cerr << Data; 
+#endif
+	return *this; 
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(float const &Data)
-	{ CheckOutput(); std::cerr << Data; return *this; }
+{ 
+	CheckOutput(); 
+#ifdef WINDOWS
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
+#else
+	std::cerr << Data; 
+#endif
+	return *this; 
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(double const &Data)
-	{ CheckOutput(); std::cerr << Data; return *this; }
+{ 
+	CheckOutput(); 
+#ifdef WINDOWS
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
+#else
+	std::cerr << Data; 
+#endif
+	return *this; 
+}
 
 OutputStream &StandardErrorStreamTag::operator <<(String const &Data)
 { 
 	CheckOutput(); 
 #ifdef WINDOWS
-	fputws(reinterpret_cast<wchar_t const *>(AsNativeString(Data).c_str()), stderr);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Data);
 #else
 	std::cerr << Data; 
 #endif
@@ -254,8 +344,11 @@ OutputStream &StandardErrorStreamTag::operator <<(OutputStream::HexToken const &
 {
 	CheckOutput(); 
 #ifdef WINDOWS
+	std::stringstream Conversion;
+	Conversion << std::hex << std::setfill('0') << std::setw(2);
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)
-		fwprintf(stderr, L"%02x", *((unsigned char *)Data.Data + CurrentPosition));
+		Conversion << *((unsigned char *)Data.Data + CurrentPosition);
+	WriteSimpleData(OutputIsConsole, OutputHandle, Conversion.str());
 #else
 	std::cerr << std::setfill('0');
 	for (unsigned int CurrentPosition = 0; CurrentPosition < Data.Length; CurrentPosition++)

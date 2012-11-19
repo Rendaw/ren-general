@@ -99,30 +99,30 @@ Path::Path(Path const &Other) : Parts(Other.Parts) {}
 
 Path::~Path(void) {}
 
-String Path::AsAbsoluteString(void) const
+String Path::AsAbsoluteString(char const *Separator) const
 {
 	MemoryStream Out;
 #ifdef WINDOWS
 	bool First = true;
 #else
 	if (Parts.empty())
-		Out << u8"/";
+		Out << Separator;
 #endif
 
 	for (auto Part : Parts)
 	{
 #ifdef WINDOWS
 		if (First) First = false;
-		else Out << u8"/";
+		else Out << Separator;
 		Out << Part;
 #else
-		Out << u8"/" << Part;
+		Out << Separator << Part;
 #endif
 	}
 
 #ifdef WINDOWS
 	if (Parts.size() == 1)
-		Out << u8"/";
+		Out << Separator;
 #endif
 	return Out;
 }
@@ -311,12 +311,12 @@ DirectoryPath &DirectoryPath::Enter(String const &Directory)
 FilePath DirectoryPath::Select(String const &File) const
 	{ return FilePath(Parts, File); }
 
-static void ProcessDirectoryContents(String const &DirectoryName, std::function<void(String const &Element, bool IsFile)> Process)
+static void ProcessDirectoryContents(DirectoryPath const &DirectoryName, std::function<void(String const &Element, bool IsFile)> Process)
 {
 #ifdef WINDOWS
 	WIN32_FIND_DATAW ElementInfo;
 	HANDLE DirectoryResource;
-	DirectoryResource = FindFirstFileW(reinterpret_cast<wchar_t const *>(AsNativeString(DirectoryName + "/*").c_str()), &ElementInfo);
+	DirectoryResource = FindFirstFileW(reinterpret_cast<wchar_t const *>(AsNativeString(DirectoryName.AsAbsoluteString("\\") + "\\*").c_str()), &ElementInfo);
 	if (DirectoryResource == INVALID_HANDLE_VALUE) return;
 	do
 	{
@@ -327,7 +327,7 @@ static void ProcessDirectoryContents(String const &DirectoryName, std::function<
 	} while (FindNextFileW(DirectoryResource, &ElementInfo) != 0);
 	FindClose(DirectoryResource);
 #else
-	DIR *DirectoryResource = opendir(DirectoryName.c_str());
+	DIR *DirectoryResource = opendir(((String)DirectoryName).c_str());
 	if (DirectoryResource == nullptr) return;
 
 	dirent *ElementInfo;
@@ -506,12 +506,23 @@ DirectoryPath LocateTemporaryDirectory(void)
 std::tuple<FilePath, FileOutput> CreateTemporaryFile(DirectoryPath const &TempDirectory)
 {
 #ifdef WINDOWS
-	NativeString TempDirectoryString = AsNativeString(TempDirectory);
-	wchar_t TemporaryFilename[MAX_PATH];
-	int Result = GetTempFileNameW(reinterpret_cast<wchar_t const *>(TempDirectoryString.c_str()), L"zar", 0, TemporaryFilename);
+	NativeString TempDirectoryString = AsNativeString(TempDirectory.AsAbsoluteString("\\"));
+	std::vector<wchar_t> TemporaryFilename;
+	TemporaryFilename.resize(MAX_PATH);
+	int Result = GetTempFileNameW(reinterpret_cast<wchar_t const *>(TempDirectoryString.c_str()), L"zar", 0, &TemporaryFilename[0]);
 	if (Result == 0)
-		throw Error::System("Could not create a temporary file!");
-	NativeString NativeTemporaryFilename(reinterpret_cast<char16_t const *>(TemporaryFilename));
+		throw Error::System("Could not determine a temporary filename!");
+	Result = GetLongPathNameW(&TemporaryFilename[0], &TemporaryFilename[0], TemporaryFilename.size());
+	assert(Result >= 0);
+	if ((unsigned int)Result > TemporaryFilename.size())
+	{
+		TemporaryFilename.resize(Result);
+		Result = GetLongPathNameW(&TemporaryFilename[0], &TemporaryFilename[0], TemporaryFilename.size());
+		assert((unsigned int)Result <= TemporaryFilename.size());
+	}
+	if (Result == 0)
+		throw Error::System("Could not qualify the temporary filename!");
+	NativeString NativeTemporaryFilename(reinterpret_cast<char16_t const *>(&TemporaryFilename[0]));
 	return std::make_tuple(FilePath(AsString(NativeTemporaryFilename)), FileOutput(AsString(NativeTemporaryFilename), FileOutput::Erase));
 #else
 	String Template = TempDirectory.AsAbsoluteString() + "/XXXXXX";
