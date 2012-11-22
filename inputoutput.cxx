@@ -249,9 +249,11 @@ StandardStreamTag StandardStream;
 		
 StandardErrorStreamTag::StandardErrorStreamTag(void)
 {
+#ifdef WINDOWS
 	DWORD Unused;
 	OutputIsConsole = !GetConsoleMode(stdout, &Unused);
 	OutputHandle = GetStdHandle(STD_ERROR_HANDLE);
+#endif
 }
 
 OutputStream &StandardErrorStreamTag::operator <<(OutputStream::FlushToken const &)
@@ -559,11 +561,11 @@ OutputStream &MemoryStream::operator <<(OutputStream::HexToken const &Data)
 MemoryStream::operator String(void) const 
 	{ return Buffer.str(); }
 
-InputStream & MemoryStream::operator >>(InputStream::RawToken &Data)
+InputStream &MemoryStream::operator >>(InputStream::RawToken &Data)
 	{ Buffer.read((char *)Data.Data, Data.Length); return *this; }
 
-InputStream & MemoryStream::operator >>(String &Data)
-	{ Buffer >> Data; return *this; }
+InputStream &MemoryStream::operator >>(String &Data)
+	{ getline(Buffer, Data); return *this; }
 
 MemoryStream::operator bool(void) const { return Buffer.good(); }
 
