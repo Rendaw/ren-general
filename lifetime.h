@@ -8,6 +8,7 @@
 #include <set>
 #include <queue>
 #include <deque>
+#include <stack>
 #include <map>
 #include <algorithm>
 
@@ -67,7 +68,6 @@ template <class Type, template<class Retype, class = std::allocator<Retype> > cl
 			return Container<Type *>::erase(Value);
 		}
 
-		//bool erase(Type *Value)
 		bool erase(Type *Value)
 		{
 			typename Container<Type *>::iterator Found =
@@ -172,6 +172,42 @@ template <class Type, class Base = std::deque<Type *> > class DeleterQueue : pub
 		{
 			while (!Container::empty())
 				{ delete Container::front(); Container::pop(); }
+		}
+		
+		void pop(void)
+		{
+			if (!Container::empty())
+			{
+				delete Container::front();
+				Container::pop();
+			}
+		}
+};
+
+template <class Type, class Base = std::deque<Type *> > class DeleterStack : public std::stack<Type *, Base>
+{
+	public:
+		typedef std::stack<Type *, Base> Container;
+
+		~DeleterStack(void)
+		{
+			while (!Container::empty())
+				{ delete Container::top(); Container::pop(); }
+		}
+
+		void clear(void)
+		{
+			while (!Container::empty())
+				{ delete Container::top(); Container::pop(); }
+		}
+
+		void pop(void)
+		{
+			if (!Container::empty())
+			{
+				delete Container::top();
+				Container::pop();
+			}
 		}
 };
 
