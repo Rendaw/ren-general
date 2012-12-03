@@ -8,6 +8,13 @@
 #include <math.h>
 #include <iostream>
 
+unsigned int Mod(int Input, int Size)
+{
+	// Note: Size must be int, not unsigned int (or else % fails hard)
+	int const Intermediate = Input % Size;
+	return Intermediate < 0 ? (Intermediate + Size) : Intermediate;
+}
+
 void OrderD(int &Min, int &Max)
 {
 	if (Min <= Max) return;

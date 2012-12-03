@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <iostream>
 
+unsigned int Mod(int Input, int Size);
+
 // Range class
 // Does not include Max, range is Min >= x > Max
 template <typename Type> class Range
