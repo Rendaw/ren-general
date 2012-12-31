@@ -26,10 +26,11 @@ template <typename Type> class Range
 			Max((std::max)(NewMin, NewMax))
 			{}
 
-		Range(const Range<Type> &Coperand) : Min(Coperand.Min), Max(Coperand.Max)
+		Range(void) : Min(0), Max(0)
 			{}
 
-		Range(void) : Min(0), Max(0)
+		template <typename OtherType>
+		Range(Range<OtherType> const &Other) : Min(Other.Min), Max(Other.Max) 
 			{}
 
 		Range<Type> &SpanSet(const Type &Start, const Type &Width)
