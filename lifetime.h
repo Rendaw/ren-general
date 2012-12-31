@@ -211,6 +211,42 @@ template <class Type, class Base = std::deque<Type *> > class DeleterStack : pub
 		}
 };
 
+template <class Type> class DeleterDequeue : public std::deque<Type *>
+{
+	public:
+		typedef std::deque<Type *> Container;
+
+		~DeleterDequeue(void)
+		{
+			while (!Container::empty())
+				{ delete Container::back(); Container::pop_back(); }
+		}
+
+		void clear(void)
+		{
+			while (!Container::empty())
+				{ delete Container::back(); Container::pop_back(); }
+		}
+
+		void pop_back(void)
+		{
+			if (!Container::empty())
+			{
+				delete Container::back();
+				Container::pop_back();
+			}
+		}
+
+		void pop_front(void)
+		{
+			if (!Container::empty())
+			{
+				delete Container::front();
+				Container::pop_front();
+			}
+		}
+};
+
 template <class Key, class Value> class DeleterMap : public std::map<Key, Value *>
 {
 	public:
