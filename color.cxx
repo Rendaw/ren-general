@@ -1,22 +1,8 @@
 #include "color.h"
 
-#include "range.h"
 #include "inputoutput.h"
 
-// Calar //////////////////////////////////////////////////////////////////////
-Color::Color(void) : Red(1), Green(1), Blue(1), Alpha(1) {}
-Color::Color(const Color &Coperand) :
-	Red(Coperand.Red), Green(Coperand.Green), Blue(Coperand.Blue), Alpha(Coperand.Alpha) {}
-Color::Color(float NewRed, float NewGreen, float NewBlue, float NewAlpha) :
-	Red(NewRed), Green(NewGreen), Blue(NewBlue), Alpha(NewAlpha) {}
-Color::Color(const Color &Coperand, float NewAlpha) :
-	Red(Coperand.Red), Green(Coperand.Green), Blue(Coperand.Blue), Alpha(NewAlpha) {}
-Color::Color(const Color &MixA, const Color &MixB, float Percent) :
-	Red(Mix(MixA.Red, MixB.Red, Percent)),
-	Green(Mix(MixA.Green, MixB.Green, Percent)),
-	Blue(Mix(MixA.Blue, MixB.Blue, Percent)),
-	Alpha(Mix(MixA.Alpha, MixB.Alpha, Percent)) {}
-
+// Color //////////////////////////////////////////////////////////////////////
 String Color::AsString(void) const
 	{ MemoryStream Out; Out << "(C " << Red << ", " << Green << ", " << Blue << ", " << Alpha << ")"; return Out; }
 

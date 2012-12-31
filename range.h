@@ -122,7 +122,7 @@ typedef Range<long int> RangeL;
 typedef Range<float> RangeF;
 
 // Mixes values
-template <typename Type> inline Type Mix(const Type &Start, const Type &End, const float Percent)
+template <typename Type> inline constexpr Type Mix(const Type &Start, const Type &End, const float Percent)
 {
 	return (End - Start) * (std::min)((std::max)(0.0f, Percent), 1.0f) + Start;
 }
