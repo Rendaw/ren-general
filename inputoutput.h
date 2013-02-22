@@ -245,4 +245,9 @@ class MemoryStream : public OutputStream, public InputStream
 		std::stringstream Buffer;
 };
 
+template <typename Base> String AsString(const Base &Convertee)
+	{ return MemoryStream() << Convertee; }
+
+template <> String AsString<NativeString>(NativeString const &Convertee);
+
 #endif

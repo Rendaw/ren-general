@@ -34,17 +34,8 @@ inline NativeString AsNativeString(String const &Input)
 #else
 typedef std::string NativeString;
 
-inline String AsNativeString(String const &Input)
+inline NativeString AsNativeString(String const &Input)
 	{ return Input; }
 #endif
-
-template <typename Base> String AsString(const Base &Convertee)
-{
-	std::stringstream Out;
-	Out << Convertee;
-	return Out.str();
-}
-
-template <> String AsString<NativeString>(NativeString const &Convertee);
 
 #endif
