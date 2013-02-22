@@ -1,6 +1,8 @@
 #ifndef INPUTOUTPUT_H
 #define INPUTOUTPUT_H
 
+#include <cassert>
+
 #include "exception.h"
 
 class Path;
@@ -27,6 +29,17 @@ class OutputStream
 		template <typename DataType> static HexToken Hex(DataType const &Data) 
 			{ return HexToken {&Data, sizeof(Data)}; }
 
+		struct StringHexToken
+		{
+			unsigned int Value;
+			unsigned int PadToCount;
+
+			StringHexToken &PadTo(unsigned int Width)
+				{ PadToCount = Width; return *this; }
+		};
+		static StringHexToken StringHex(unsigned int const &Data)
+			{ return StringHexToken {Data, 0}; }
+
 		struct FloatToken
 		{
 			float Value;
@@ -51,6 +64,7 @@ class OutputStream
 		virtual OutputStream &operator <<(long int const &Data) = 0;
 		virtual OutputStream &operator <<(long unsigned int const &Data) = 0;
 		virtual OutputStream &operator <<(unsigned int const &Data) = 0;
+		virtual OutputStream &operator <<(StringHexToken const &Data);
 		virtual OutputStream &operator <<(float const &Data) = 0;
 		virtual OutputStream &operator <<(FloatToken const &Data);
 		virtual OutputStream &operator <<(double const &Data) = 0;
@@ -136,7 +150,7 @@ class StandardErrorStreamTag : public OutputStream
 		OutputStream &operator <<(float const &Data);
 		OutputStream &operator <<(double const &Data);
 		inline OutputStream &operator <<(char const *Data)
-			{ *this << String(Data); return *this; }
+			{ assert(Data != nullptr); *this << String(Data); return *this; }
 		OutputStream &operator <<(String const &Data);
 		OutputStream &operator <<(OutputStream::HexToken const &Data);
 	private:
@@ -207,7 +221,7 @@ class MemoryStream : public OutputStream, public InputStream
 		using OutputStream::operator <<;
 		using InputStream::operator >>;
 		
-		MemoryStream(void);
+		MemoryStream(unsigned int Reserve = 0);
 		MemoryStream(String const &InitialData);
 		OutputStream &operator <<(OutputStream::FlushToken const &Data);
 		OutputStream &operator <<(OutputStream::RawToken const &Data);
