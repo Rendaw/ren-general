@@ -14,16 +14,15 @@
 
 OutputStream::~OutputStream(void) {}
 		
-OutputStream &OutputStream &operator <<(StringHexToken const &Data)
+OutputStream &OutputStream::operator <<(StringHexToken const &Data)
 {
 	std::stringstream Out;
-	Out.setf(std::ios::hex);
 	if (Data.PadToCount > 0)
 	{
 		Out.width(Data.PadToCount);
 		Out.fill('0');
 	}
-	Out << Data.Value;
+	Out << std::hex << Data.Value;
 	*this << Out.str();
 	return *this;
 }
@@ -527,7 +526,7 @@ InputStream &FileInput::operator >>(String &Data)
 		
 FileInput::operator bool(void) const { return !feof(File) && !ferror(File); }
 
-MemoryStream::MemoryStream(unsigned int Reserve) { str().reserve(Reserve); }
+MemoryStream::MemoryStream(unsigned int Reserve) { Buffer.str().reserve(Reserve); }
 
 MemoryStream::MemoryStream(String const &InitialData) : Buffer(InitialData) {}
 
