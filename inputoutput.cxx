@@ -502,11 +502,13 @@ InputStream &FileInput::operator >>(String &Data)
 
 		char *Result = fgets(Buffer, BufferSize, File);
 		if (Result != nullptr)
-		{ 
-			for (unsigned int BufferIndex = 1; BufferIndex < BufferSize; BufferIndex++)
-				if (Buffer[BufferIndex] == '\0')
+		{
+			for (unsigned int BufferIndex = 0; BufferIndex < BufferSize; ++BufferIndex)
+				if ((Buffer[BufferIndex] == '\r') ||
+					(Buffer[BufferIndex] == '\n') ||
+					(Buffer[BufferIndex] == '\0'))
 				{
-					Buffer[BufferIndex - 1] = '\0';
+					Buffer[BufferIndex] = '\0';
 					break;
 				}
 			Buffer[BufferSize - 1] = '\0';
