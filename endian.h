@@ -1,6 +1,10 @@
 #ifndef endian_h
 #define endian_h
 
+#ifdef WINDOWS
+#include <stdlib.h>
+#endif
+
 /*uint16_t constexpr HostIsLittleEndianTestData(0xABCD);
 constexpr bool HostIsLittleEndian(void)
 {
@@ -28,7 +32,7 @@ template <typename Base, bool LittleEndian> class Endian
 #ifdef WINDOWS
 				sizeof(Base) == 16 ? static_cast<Base>(_byteswap_ushort(static_cast<uint16_t>(Input))) :
 				sizeof(Base) == 32 ? static_cast<Base>(_byteswap_ulong(static_cast<uint32_t>(Input))) :
-				static_cast<Base>(_byteswap_ulonglong(static_cast<uint64_t>(Input)))
+				static_cast<Base>(_byteswap_uint64(static_cast<uint64_t>(Input)))
 #else
 				sizeof(Base) == 16 ? static_cast<Base>((static_cast<uint16_t>(Input) << 8) | (static_cast<uint16_t>(Input) >> 8)) :
 				sizeof(Base) == 32 ? static_cast<Base>(::__builtin_bswap32(static_cast<uint32_t>(Input))) :
