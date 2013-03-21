@@ -86,6 +86,7 @@ FilePath LocateUserConfigFile(String const &Filename);
 FilePath LocateUserConfigFile(String const &Project, String const &Filename);
 FilePath LocateGlobalConfigFile(String const &Filename);
 FilePath LocateGlobalConfigFile(String const &Project, String const &Filename);
+DirectoryPath LocateDataDirectory(void);
 DirectoryPath LocateDocumentDirectory(void);
 DirectoryPath LocateDocumentDirectory(String const &Project);
 DirectoryPath LocateTemporaryDirectory(void);
