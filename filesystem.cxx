@@ -470,15 +470,15 @@ FilePath LocateGlobalConfigFile(String const &Project, String const &Filename)
 
 DirectoryPath LocateDataDirectory(void)
 {
-#ifdef RENGENERAL_FILESYSTEM_DATADIR
-	return DirectoryPath::Qualify(RENGENERAL_FILESYSTEM_DATADIR);
+#ifdef RENGENERAL_FILESYSTEM_DATALOCATION
+	return DirectoryPath::Qualify(RENGENERAL_FILESYSTEM_DATALOCATION);
 #else
 #ifdef WINDOWS
 	wchar_t PathResult[MAX_PATH];
 	DWORD Result = GetModuleFileNameW(nullptr, PathResult, MAX_PATH);
 	if (Result == 0)
 		throw Error::System("Couldn't locate executable directory!  Received error " + AsString(GetLastError()));
-	return DirectoryPath::Qualify(AsString(NativeString(reinterpret_cast<char16_t const *>(PathResult))));
+	return FilePath::Qualify(AsString(NativeString(reinterpret_cast<char16_t const *>(PathResult)))).Directory();
 #else
 	return DirectoryPath::Qualify(".");
 #endif
