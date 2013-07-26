@@ -89,6 +89,7 @@ class InputStream
 		virtual ~InputStream(void);
 
 		virtual InputStream &operator >>(RawToken &Data) = 0;
+		virtual InputStream &operator >>(bool &Data);
 		virtual InputStream &operator >>(int &Data);
 		virtual InputStream &operator >>(unsigned int &Data);
 		virtual InputStream &operator >>(float &Data);

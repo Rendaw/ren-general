@@ -55,6 +55,15 @@ OutputStream::operator String(void) const { assert(false); return ""; }
 			
 InputStream::~InputStream(void) {}
 
+InputStream &InputStream::operator >>(bool &Data)
+{
+	String Temp;
+	*this >> Temp;
+	std::stringstream Convert(Temp);
+	Convert >> Data;
+	return *this;
+}
+
 InputStream &InputStream::operator >>(int &Data)
 {
 	String Temp;
